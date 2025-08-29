@@ -16,5 +16,5 @@ ARG FORCE_BUILD=off \
 
 COPY build.sh install.sh patches /tmp/mamba/
 COPY benchmarks /tmp/mamba/benchmarks
-
+COPY mamba_ssm-2.2.5-cp312-cp312-linux_aarch64.whl /tmp/mamba/
 RUN /tmp/mamba/install.sh || /tmp/mamba/build.sh

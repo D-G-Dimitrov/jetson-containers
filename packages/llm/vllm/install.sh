@@ -10,7 +10,7 @@ apt-get install -y --no-install-recommends \
 	libsm6 \
 	libxext6 \
 	libgl1
-	
+
 rm -rf /var/lib/apt/lists/*
 apt-get clean
 
@@ -22,7 +22,8 @@ fi
 pip3 install \
 	compressed-tensors \
 	xgrammar \
-	vllm==${VLLM_VERSION}+${CUDA_SUFFIX}
+	/tmp/vllm/vllm-${VLLM_VERSION}+${CUDA_SUFFIX}-cp312-cp312-linux_aarch64.whl
+	#vllm==${VLLM_VERSION}+${CUDA_SUFFIX}
 
 # File "/opt/venv/lib/python3.12/site-packages/gguf/gguf_reader.py"
 # `newbyteorder` was removed from the ndarray class in NumPy 2.0

@@ -19,5 +19,5 @@ RUN apt-get update && \
     && apt-get clean
 
 COPY build.sh install.sh /tmp/cutlass/
-
+COPY wheels/ /tmp/cutlass/
 RUN /tmp/cutlass/install.sh || /tmp/cutlass/build.sh

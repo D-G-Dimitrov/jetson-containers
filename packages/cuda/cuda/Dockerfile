@@ -18,6 +18,7 @@ ARG CUDA_URL \
     DISTRO="ubuntu2004"
 
 COPY install.sh /tmp/cuda/install.sh
+COPY cuda-tegra-repo-ubuntu2204-12-9-local_12.9.1-1_arm64.deb /tmp/cuda/
 RUN /tmp/cuda/install.sh
 
 ENV CUDA_HOME="/usr/local/cuda"

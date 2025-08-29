@@ -24,9 +24,12 @@ RUN ls /etc/apt/sources.list.d/ && \
     apt-get update && \
     apt-cache search cudnn
 
-RUN echo "Downloading ${CUDNN_DEB}" && \
-    rm -rf /tmp/cudnn && mkdir /tmp/cudnn && cd /tmp/cudnn && \
-    wget ${WGET_FLAGS} ${CUDNN_URL} && \
+RUN rm -rf /tmp/cudnn && mkdir /tmp/cudnn && cd /tmp/cudnn
+
+COPY cudnn-local-tegra-repo-ubuntu2404-9.10.2_1.0-1_arm64.deb /tmp/cudnn/
+
+RUN echo "Setup ${CUDNN_DEB}" && \
+    cd /tmp/cudnn && \
     dpkg -i *.deb && \
     cp /var/cudnn-*-repo-*/cudnn-*-keyring.gpg /usr/share/keyrings/ && \
     apt-get update && \

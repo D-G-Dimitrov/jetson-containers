@@ -23,7 +23,7 @@ RUN apt-get update -y || true ; apt-get install --no-install-recommends libopenm
     apt-get clean
 
 COPY build.sh install.sh $TMP/
-
+COPY wheels/ $TMP/
 RUN $TMP/install.sh || $TMP/build.sh || touch $TMP/.build.failed
 
 # this retains the stage above for debugging on build failure
