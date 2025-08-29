@@ -14,5 +14,5 @@ ARG CASUALCONV1D_VERSION \
     CASUALCONV1D_VERSION_SPEC
 
 COPY build.sh install.sh patches /tmp/causalconv1d/
-
+COPY causal_conv1d-${CASUALCONV1D_VERSION}-cp312-cp312-linux_aarch64.whl /tmp/causalconv1d/
 RUN /tmp/causalconv1d/install.sh || /tmp/causalconv1d/build.sh

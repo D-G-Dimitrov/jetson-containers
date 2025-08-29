@@ -28,5 +28,5 @@ RUN apt-get update -y && \
     rm -rf /var/lib/apt/lists/*
 
 COPY build.sh install.sh patches /tmp/minference/
-
+COPY minference-0.1.6.0-cp312-cp312-linux_aarch64.whl /tmp/minference/
 RUN /tmp/minference/install.sh || /tmp/minference/build.sh

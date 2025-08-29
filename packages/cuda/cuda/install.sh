@@ -36,7 +36,7 @@ else
         -O /etc/apt/preferences.d/cuda-repository-pin-600
 fi
 
-wget $WGET_FLAGS ${CUDA_URL}
+#wget $WGET_FLAGS ${CUDA_URL}
 dpkg -i *.deb
 cp /var/cuda-*-local/cuda-*-keyring.gpg /usr/share/keyrings/
 

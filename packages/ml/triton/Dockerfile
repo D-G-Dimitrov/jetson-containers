@@ -16,5 +16,5 @@ ARG TRITON_VERSION \
     FORCE_BUILD=off
 
 COPY build.sh install.sh patches /tmp/triton/
-
+COPY triton-3.4.0-cp312-cp312-linux_aarch64.whl /tmp/triton/
 RUN /tmp/triton/install.sh || /tmp/triton/build.sh

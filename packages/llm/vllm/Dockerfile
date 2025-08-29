@@ -18,6 +18,6 @@ ARG VLLM_VERSION \
     FORCE_BUILD=off
 
 COPY build.sh install.sh patches /tmp/vllm/
-
+COPY vllm-0.10.2+cu129-cp312-cp312-linux_aarch64.whl /tmp/vllm/
 RUN /tmp/vllm/install.sh || /tmp/vllm/build.sh && \
     /tmp/transformers/install.sh

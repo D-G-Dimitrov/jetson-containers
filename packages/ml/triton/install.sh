@@ -7,4 +7,4 @@ if [ "$FORCE_BUILD" == "on" ]; then
 	exit 1
 fi
 
-pip3 install triton==${TRITON_VERSION}
+pip3 install /tmp/triton/triton-${TRITON_VERSION}-cp312-cp312-linux_aarch64.whl #triton==${TRITON_VERSION}
