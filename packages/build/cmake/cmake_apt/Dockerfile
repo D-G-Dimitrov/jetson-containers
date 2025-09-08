@@ -8,7 +8,7 @@ ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 
 # upgrade cmake via kitware's apt repo - https://apt.kitware.com/
-# typically --only-upgrade is used in the apt install, but cmake wasn't previously installed in this container	
+# typically --only-upgrade is used in the apt install, but cmake wasn't previously installed in this container
 # previous issue regarding kitware's rotating GPG keys: https://github.com/dusty-nv/jetson-containers/issues/216
 RUN set -ex \
     && wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null \
@@ -17,7 +17,7 @@ RUN set -ex \
     && rm /usr/share/keyrings/kitware-archive-keyring.gpg \
     && apt-get install -y --no-install-recommends kitware-archive-keyring \
     && apt-cache policy cmake \
-    && apt-get install -y --no-install-recommends cmake \
+    && apt-get install -y --no-install-recommends cmake=3.31.8-0kitware1ubuntu22.04.1 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean \
     \

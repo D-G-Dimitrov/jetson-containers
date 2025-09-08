@@ -1,6 +1,9 @@
 from jetson_containers import CUDA_VERSION, IS_SBSA, CUDA_ARCHITECTURES
 from packaging.version import Version
 
+from packages.pytorch.version import PYTORCH_VERSION
+
+
 def flash_infer(version, version_spec=None, requires=None, default=False):
     pkg = package.copy()
 
