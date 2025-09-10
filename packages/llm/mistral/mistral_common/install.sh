@@ -2,6 +2,7 @@
 set -ex
 
 apt-get update -y
+apt-get remove -y python3-jsonschema
 apt-get install -y --no-install-recommends \
 	libnuma-dev \
 	libsndfile1 \
@@ -20,6 +21,7 @@ if [ "$FORCE_BUILD" == "on" ]; then
 fi
 
 pip3 install \
+  jsonschema>=4.21.1 \
 	compressed-tensors \
 	xgrammar \
 	mistral_common==${MISTRAL_COMMON_VERSION}
