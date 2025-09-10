@@ -16,7 +16,7 @@ RUN echo $CUDNN_PACKAGES
 
 # First, remove any existing cuDNN packages to avoid conflicts
 RUN apt-get update && \
-    apt-get remove -y --purge libcudnn* && \
+    apt-get remove -y --purge libcudnn* *cudnn* && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean
 
@@ -36,7 +36,7 @@ RUN echo "Downloading ${CUDNN_DEB}" && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean && \
     dpkg --list | grep cudnn && \
-    dpkg -P ${CUDNN_DEB} && \
+#    dpkg -P ${CUDNN_DEB} && \
     rm -rf /tmp/cudnn
 
 RUN cd /usr/src/cudnn_samples_v*/conv_sample/ && \
