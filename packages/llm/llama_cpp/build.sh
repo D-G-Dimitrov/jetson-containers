@@ -7,7 +7,7 @@ INSTALL_CPP=${SOURCE_DIR}/build/dist
 set -ex
 
 git clone --recursive --branch=${LLAMA_CPP_BRANCH_PY} https://github.com/abetlen/llama-cpp-python ${SOURCE_DIR} || \
-git clone --recursive https://github.com/abetlen/llama-cpp-python
+git clone --recursive https://github.com/abetlen/llama-cpp-python ${SOURCE_DIR}
 
 if [ -n "${LLAMA_CPP_BRANCH}" ]; then
     cd ${SOURCE_CPP}
