@@ -94,6 +94,12 @@ if [[ "$(uname -m)" == "aarch64" && "${TORCH_CUDA_ARCH_LIST}" = "8.7" ]]; then
   if ! git apply -p1 ${TMP}/sm_87-${SGL_KERNEL_VERSION}.diff ;then
     warn "Patch for SM 8.7 FAILED!" && exit 1
   else
+    sed -i '/nvfp4_expert_quant\.cu/s/^/# /' CMakeLists.txt
+    sed -i '/nvfp4_quant_entry\.cu/s/^/# /' CMakeLists.txt
+    sed -i '/nvfp4_quant_kernels\.cu/s/^/# /' CMakeLists.txt
+    sed -i '/nvfp4_scaled_mm_entry\.cu/s/^/# /' CMakeLists.txt
+    sed -i '/nvfp4_scaled_mm_kernels\.cu/s/^/# /' CMakeLists.txt
+    sed -i '/nvfp4_blockwise_moe\.cu/s/^/# /' CMakeLists.txt
     ok "Patch for SM 8.7 applied successfully!"
   fi
 fi
