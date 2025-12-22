@@ -4,8 +4,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
---- a/sgl-kernel/CMakeLists.txt	(revision 50691d7b4999dffa13b2809b7cec56fa686138fe)
-+++ b/sgl-kernel/CMakeLists.txt	(date 1763299832454)
+--- a/sgl-kernel/CMakeLists.txt	(revision 7ae368efde14f0b2abe769a5fbb99b8154b2a9b7)
++++ b/sgl-kernel/CMakeLists.txt	(date 1766430795770)
 @@ -127,10 +127,10 @@
  # Enable gencode below SM90
  option(ENABLE_BELOW_SM90 "Enable below SM90" ON)
@@ -134,7 +134,27 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 
  # All source files
  # NOTE: Please sort the filenames alphabetically
-@@ -371,20 +371,22 @@
+@@ -290,11 +290,6 @@
+     "csrc/gemm/fp8_blockwise_gemm_kernel.cu"
+     "csrc/gemm/fp8_gemm_kernel.cu"
+     "csrc/gemm/int8_gemm_kernel.cu"
+-    "csrc/gemm/nvfp4_expert_quant.cu"
+-    "csrc/gemm/nvfp4_quant_entry.cu"
+-    "csrc/gemm/nvfp4_quant_kernels.cu"
+-    "csrc/gemm/nvfp4_scaled_mm_entry.cu"
+-    "csrc/gemm/nvfp4_scaled_mm_kernels.cu"
+     "csrc/gemm/per_tensor_quant_fp8.cu"
+     "csrc/gemm/per_token_group_quant_8bit.cu"
+     "csrc/gemm/per_token_group_quant_8bit_v2.cu"
+@@ -324,7 +319,6 @@
+     "csrc/moe/moe_sum_reduce.cu"
+     "csrc/moe/moe_topk_softmax_kernels.cu"
+     "csrc/moe/moe_topk_sigmoid_kernels.cu"
+-    "csrc/moe/nvfp4_blockwise_moe.cu"
+     "csrc/moe/fp8_blockwise_moe_kernel.cu"
+     "csrc/moe/prepare_moe_input.cu"
+
+@@ -372,20 +366,22 @@
      OUTPUT_NAME "common_ops"
      LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/sm90"
  )
@@ -166,7 +186,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 
  find_package(Python3 COMPONENTS Interpreter REQUIRED)
  execute_process(
-@@ -412,7 +414,7 @@
+@@ -413,7 +409,7 @@
  )
 
  target_link_libraries(common_ops_sm90_build PRIVATE ${TORCH_LIBRARIES} c10 cuda cublas cublasLt mscclpp_static)
@@ -175,7 +195,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 
  # sparse flash attention
  target_compile_definitions(common_ops_sm90_build PRIVATE
-@@ -420,17 +422,17 @@
+@@ -421,17 +417,17 @@
      FLASHATTENTION_DISABLE_DROPOUT
      FLASHATTENTION_DISABLE_UNEVEN_K
  )
@@ -199,7 +219,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 
  # ============================ Optional Install: FA3 ============================= #
  # set flash-attention sources file
-@@ -442,7 +444,7 @@
+@@ -443,7 +439,7 @@
          "-O3"
          "-Xcompiler"
          "-fPIC"
@@ -208,7 +228,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
          "-std=c++17"
          "-DCUTE_USE_PACKED_TUPLE=1"
          "-DCUTLASS_ENABLE_TENSOR_CORE_MMA=1"
-@@ -458,10 +460,10 @@
+@@ -459,10 +455,10 @@
      )
 
      if (ENABLE_BELOW_SM90)
@@ -223,7 +243,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
          # SM8X Logic
          file(GLOB FA3_SM8X_GEN_SRCS
              "${repo-flash-attention_SOURCE_DIR}/hopper/instantiations/flash_fwd_hdim*_sm80.cu")
-@@ -588,10 +590,10 @@
+@@ -589,10 +585,10 @@
 
  # ============================ Extra Install: FA4 ============================= #
  # TODO: find a better install condition.
@@ -241,3 +261,110 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 +#            PATTERN ".git*" EXCLUDE
 +#            PATTERN "__pycache__" EXCLUDE)
 +#    endif()
+Index: sgl-kernel/csrc/common_extension.cc
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/sgl-kernel/csrc/common_extension.cc b/sgl-kernel/csrc/common_extension.cc
+--- a/sgl-kernel/csrc/common_extension.cc	(revision 7ae368efde14f0b2abe769a5fbb99b8154b2a9b7)
++++ b/sgl-kernel/csrc/common_extension.cc	(date 1766430928131)
+@@ -151,38 +151,11 @@
+   m.def("sgl_per_token_quant_fp8(Tensor input, Tensor output_q, Tensor output_s) -> ()");
+   m.impl("sgl_per_token_quant_fp8", torch::kCUDA, &sgl_per_token_quant_fp8);
+
+-  m.def(
+-      "cutlass_scaled_fp4_mm(Tensor! out, Tensor a, Tensor b,"
+-      "                      Tensor block_scale_a, Tensor block_scale_b,"
+-      "                      Tensor alpha) -> ()");
+-  m.impl("cutlass_scaled_fp4_mm", torch::kCUDA, &cutlass_scaled_fp4_mm);
+
+-  m.def(
+-      "scaled_fp4_quant(Tensor! output, Tensor! input,"
+-      "                 Tensor! output_scale, Tensor! input_scale) -> ()");
+-  m.impl("scaled_fp4_quant", torch::kCUDA, &scaled_fp4_quant);
+
+   m.def("dsv3_fused_a_gemm(Tensor! output, Tensor mat_a, Tensor mat_b) -> ()");
+   m.impl("dsv3_fused_a_gemm", torch::kCUDA, &dsv3_fused_a_gemm);
+
+-  // Compute NVFP4 experts quantization.
+-  m.def(
+-      "scaled_fp4_experts_quant(Tensor! output, Tensor! output_scale,"
+-      "Tensor input, Tensor input_global_scale, Tensor input_offset_by_experts,"
+-      "Tensor output_scale_offset_by_experts) -> ()");
+-  m.impl("scaled_fp4_experts_quant", torch::kCUDA, &scaled_fp4_experts_quant);
+-
+-  m.def(
+-      "silu_and_mul_scaled_fp4_experts_quant(Tensor! output, Tensor! output_scale,"
+-      "Tensor input, Tensor input_global_scale, Tensor mask, bool use_silu_and_mul) -> ()");
+-  m.impl("silu_and_mul_scaled_fp4_experts_quant", torch::kCUDA, &silu_and_mul_scaled_fp4_experts_quant);
+-
+-  m.def(
+-      "cutlass_fp4_group_mm(Tensor! output, Tensor a, Tensor b,"
+-      "Tensor a_blockscale, Tensor b_blockscale, Tensor alphas,"
+-      "Tensor ab_strides, Tensor c_strides, Tensor problem_sizes,"
+-      " Tensor expert_offsets, Tensor sf_offsets) -> ()");
+-  m.impl("cutlass_fp4_group_mm", torch::kCUDA, &cutlass_fp4_group_mm);
+
+   m.def("dsv3_router_gemm(Tensor! output, Tensor mat_a, Tensor mat_b) -> ()");
+   m.impl("dsv3_router_gemm", torch::kCUDA, &dsv3_router_gemm);
+Index: sgl-kernel/include/sgl_kernel_ops.h
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/sgl-kernel/include/sgl_kernel_ops.h b/sgl-kernel/include/sgl_kernel_ops.h
+--- a/sgl-kernel/include/sgl_kernel_ops.h	(revision 7ae368efde14f0b2abe769a5fbb99b8154b2a9b7)
++++ b/sgl-kernel/include/sgl_kernel_ops.h	(date 1766430928137)
+@@ -191,20 +191,6 @@
+  * From csrc/gemm
+  */
+ torch::Tensor awq_dequantize(torch::Tensor qweight, torch::Tensor scales, torch::Tensor qzeros);
+-void cutlass_scaled_fp4_mm(
+-    torch::Tensor& D,
+-    torch::Tensor const& A,
+-    torch::Tensor const& B,
+-    torch::Tensor const& A_sf,
+-    torch::Tensor const& B_sf,
+-    torch::Tensor const& alpha);
+-torch::Tensor int8_scaled_mm(
+-    const torch::Tensor& mat_a,
+-    const torch::Tensor& mat_b,
+-    const torch::Tensor& scales_a,
+-    const torch::Tensor& scales_b,
+-    const torch::Dtype& out_dtype,
+-    const c10::optional<torch::Tensor>& bias);
+ torch::Tensor fp8_scaled_mm(
+     const torch::Tensor& mat_a,
+     const torch::Tensor& mat_b,
+@@ -218,8 +204,6 @@
+     const torch::Tensor& scales_a,
+     const torch::Tensor& scales_b,
+     const torch::Dtype& out_dtype);
+-void scaled_fp4_quant(
+-    torch::Tensor& output, torch::Tensor const& input, torch::Tensor& output_scale, torch::Tensor const& input_scale);
+ void sgl_per_token_group_quant_8bit(
+     at::Tensor input,
+     at::Tensor output_q,
+@@ -408,21 +392,6 @@
+     const torch::Tensor& expert_offsets,
+     const torch::Tensor& sf_offsets);
+
+-void scaled_fp4_experts_quant(
+-    torch::Tensor& output,
+-    torch::Tensor& output_scale,
+-    torch::Tensor const& input,
+-    torch::Tensor const& input_global_scale,
+-    torch::Tensor const& input_offset_by_experts,
+-    torch::Tensor const& output_scale_offset_by_experts);
+-
+-void silu_and_mul_scaled_fp4_experts_quant(
+-    torch::Tensor& output,
+-    torch::Tensor& output_scale,
+-    torch::Tensor const& input,
+-    torch::Tensor const& input_global_scale,
+-    torch::Tensor const& mask,
+-    bool use_silu_and_mul);
+
+ /*
+  * From csrc/moe/cutlass_moe/w4a8
