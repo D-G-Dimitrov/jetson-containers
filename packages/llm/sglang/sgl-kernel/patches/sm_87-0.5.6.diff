@@ -261,6 +261,59 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 +#            PATTERN ".git*" EXCLUDE
 +#            PATTERN "__pycache__" EXCLUDE)
 +#    endif()
+Index: sgl-kernel/include/sgl_kernel_ops.h
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/sgl-kernel/include/sgl_kernel_ops.h b/sgl-kernel/include/sgl_kernel_ops.h
+--- a/sgl-kernel/include/sgl_kernel_ops.h	(revision 7ae368efde14f0b2abe769a5fbb99b8154b2a9b7)
++++ b/sgl-kernel/include/sgl_kernel_ops.h	(date 1766430928137)
+@@ -191,13 +191,6 @@
+  * From csrc/gemm
+  */
+ torch::Tensor awq_dequantize(torch::Tensor qweight, torch::Tensor scales, torch::Tensor qzeros);
+-void cutlass_scaled_fp4_mm(
+-    torch::Tensor& D,
+-    torch::Tensor const& A,
+-    torch::Tensor const& B,
+-    torch::Tensor const& A_sf,
+-    torch::Tensor const& B_sf,
+-    torch::Tensor const& alpha);
+ torch::Tensor int8_scaled_mm(
+     const torch::Tensor& mat_a,
+     const torch::Tensor& mat_b,
+@@ -218,8 +211,6 @@
+     const torch::Tensor& scales_a,
+     const torch::Tensor& scales_b,
+     const torch::Dtype& out_dtype);
+-void scaled_fp4_quant(
+-    torch::Tensor& output, torch::Tensor const& input, torch::Tensor& output_scale, torch::Tensor const& input_scale);
+ void sgl_per_token_group_quant_8bit(
+     at::Tensor input,
+     at::Tensor output_q,
+@@ -408,21 +399,6 @@
+     const torch::Tensor& expert_offsets,
+     const torch::Tensor& sf_offsets);
+
+-void scaled_fp4_experts_quant(
+-    torch::Tensor& output,
+-    torch::Tensor& output_scale,
+-    torch::Tensor const& input,
+-    torch::Tensor const& input_global_scale,
+-    torch::Tensor const& input_offset_by_experts,
+-    torch::Tensor const& output_scale_offset_by_experts);
+-
+-void silu_and_mul_scaled_fp4_experts_quant(
+-    torch::Tensor& output,
+-    torch::Tensor& output_scale,
+-    torch::Tensor const& input,
+-    torch::Tensor const& input_global_scale,
+-    torch::Tensor const& mask,
+-    bool use_silu_and_mul);
+
+ /*
+  * From csrc/moe/cutlass_moe/w4a8
 Index: sgl-kernel/csrc/common_extension.cc
 IDEA additional info:
 Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
@@ -308,63 +361,3 @@ diff --git a/sgl-kernel/csrc/common_extension.cc b/sgl-kernel/csrc/common_extens
 
    m.def("dsv3_router_gemm(Tensor! output, Tensor mat_a, Tensor mat_b) -> ()");
    m.impl("dsv3_router_gemm", torch::kCUDA, &dsv3_router_gemm);
-Index: sgl-kernel/include/sgl_kernel_ops.h
-IDEA additional info:
-Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
-<+>UTF-8
-===================================================================
-diff --git a/sgl-kernel/include/sgl_kernel_ops.h b/sgl-kernel/include/sgl_kernel_ops.h
---- a/sgl-kernel/include/sgl_kernel_ops.h	(revision 7ae368efde14f0b2abe769a5fbb99b8154b2a9b7)
-+++ b/sgl-kernel/include/sgl_kernel_ops.h	(date 1766430928137)
-@@ -191,20 +191,6 @@
-  * From csrc/gemm
-  */
- torch::Tensor awq_dequantize(torch::Tensor qweight, torch::Tensor scales, torch::Tensor qzeros);
--void cutlass_scaled_fp4_mm(
--    torch::Tensor& D,
--    torch::Tensor const& A,
--    torch::Tensor const& B,
--    torch::Tensor const& A_sf,
--    torch::Tensor const& B_sf,
--    torch::Tensor const& alpha);
--torch::Tensor int8_scaled_mm(
--    const torch::Tensor& mat_a,
--    const torch::Tensor& mat_b,
--    const torch::Tensor& scales_a,
--    const torch::Tensor& scales_b,
--    const torch::Dtype& out_dtype,
--    const c10::optional<torch::Tensor>& bias);
- torch::Tensor fp8_scaled_mm(
-     const torch::Tensor& mat_a,
-     const torch::Tensor& mat_b,
-@@ -218,8 +204,6 @@
-     const torch::Tensor& scales_a,
-     const torch::Tensor& scales_b,
-     const torch::Dtype& out_dtype);
--void scaled_fp4_quant(
--    torch::Tensor& output, torch::Tensor const& input, torch::Tensor& output_scale, torch::Tensor const& input_scale);
- void sgl_per_token_group_quant_8bit(
-     at::Tensor input,
-     at::Tensor output_q,
-@@ -408,21 +392,6 @@
-     const torch::Tensor& expert_offsets,
-     const torch::Tensor& sf_offsets);
-
--void scaled_fp4_experts_quant(
--    torch::Tensor& output,
--    torch::Tensor& output_scale,
--    torch::Tensor const& input,
--    torch::Tensor const& input_global_scale,
--    torch::Tensor const& input_offset_by_experts,
--    torch::Tensor const& output_scale_offset_by_experts);
--
--void silu_and_mul_scaled_fp4_experts_quant(
--    torch::Tensor& output,
--    torch::Tensor& output_scale,
--    torch::Tensor const& input,
--    torch::Tensor const& input_global_scale,
--    torch::Tensor const& mask,
--    bool use_silu_and_mul);
-
- /*
-  * From csrc/moe/cutlass_moe/w4a8
