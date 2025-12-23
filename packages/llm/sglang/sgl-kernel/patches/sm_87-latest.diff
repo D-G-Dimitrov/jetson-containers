@@ -1,0 +1,395 @@
+Index: sgl-kernel/csrc/common_extension.cc
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/sgl-kernel/csrc/common_extension.cc b/sgl-kernel/csrc/common_extension.cc
+--- a/sgl-kernel/csrc/common_extension.cc	(revision bc3ca3002330c7a391e01e1b99c523d6e2856881)
++++ b/sgl-kernel/csrc/common_extension.cc	(date 1766470680372)
+@@ -157,38 +157,11 @@
+   m.def("sgl_per_token_quant_fp8(Tensor input, Tensor output_q, Tensor output_s) -> ()");
+   m.impl("sgl_per_token_quant_fp8", torch::kCUDA, &sgl_per_token_quant_fp8);
+
+-  m.def(
+-      "cutlass_scaled_fp4_mm(Tensor! out, Tensor a, Tensor b,"
+-      "                      Tensor block_scale_a, Tensor block_scale_b,"
+-      "                      Tensor alpha) -> ()");
+-  m.impl("cutlass_scaled_fp4_mm", torch::kCUDA, &cutlass_scaled_fp4_mm);
+
+-  m.def(
+-      "scaled_fp4_quant(Tensor! output, Tensor! input,"
+-      "                 Tensor! output_scale, Tensor! input_scale) -> ()");
+-  m.impl("scaled_fp4_quant", torch::kCUDA, &scaled_fp4_quant);
+
+   m.def("dsv3_fused_a_gemm(Tensor! output, Tensor mat_a, Tensor mat_b) -> ()");
+   m.impl("dsv3_fused_a_gemm", torch::kCUDA, &dsv3_fused_a_gemm);
+
+-  // Compute NVFP4 experts quantization.
+-  m.def(
+-      "scaled_fp4_experts_quant(Tensor! output, Tensor! output_scale,"
+-      "Tensor input, Tensor input_global_scale, Tensor input_offset_by_experts,"
+-      "Tensor output_scale_offset_by_experts) -> ()");
+-  m.impl("scaled_fp4_experts_quant", torch::kCUDA, &scaled_fp4_experts_quant);
+-
+-  m.def(
+-      "silu_and_mul_scaled_fp4_experts_quant(Tensor! output, Tensor! output_scale,"
+-      "Tensor input, Tensor input_global_scale, Tensor mask, bool use_silu_and_mul) -> ()");
+-  m.impl("silu_and_mul_scaled_fp4_experts_quant", torch::kCUDA, &silu_and_mul_scaled_fp4_experts_quant);
+-
+-  m.def(
+-      "cutlass_fp4_group_mm(Tensor! output, Tensor a, Tensor b,"
+-      "Tensor a_blockscale, Tensor b_blockscale, Tensor alphas,"
+-      "Tensor ab_strides, Tensor c_strides, Tensor problem_sizes,"
+-      " Tensor expert_offsets, Tensor sf_offsets) -> ()");
+-  m.impl("cutlass_fp4_group_mm", torch::kCUDA, &cutlass_fp4_group_mm);
+
+   m.def("dsv3_router_gemm(Tensor! output, Tensor mat_a, Tensor mat_b) -> ()");
+   m.impl("dsv3_router_gemm", torch::kCUDA, &dsv3_router_gemm);
+@@ -583,14 +556,6 @@
+       "stride_a, Tensor stride_b, Tensor stride_d, Tensor problem_sizes, Tensor expert_offsets, Tensor workspace) -> "
+       "()");
+   m.impl("es_fp8_blockwise_scaled_grouped_mm", &es_fp8_blockwise_scaled_grouped_mm);
+-  m.def(
+-      "es_sm100_mxfp8_blockscaled_grouped_mm(Tensor a, Tensor b, Tensor sfa, Tensor sfb, Tensor d, Tensor "
+-      "problem_sizes, Tensor expert_offsets, Tensor blockscale_offsets) -> ()");
+-  m.impl("es_sm100_mxfp8_blockscaled_grouped_mm", &es_sm100_mxfp8_blockscaled_grouped_mm);
+-  m.def(
+-      "es_sm100_mxfp8_blockscaled_grouped_quant(Tensor input, Tensor problem_sizes, Tensor expert_offsets, Tensor "
+-      "blockscale_offsets, Tensor quant_output, Tensor scale_factor) -> () ");
+-  m.impl("es_sm100_mxfp8_blockscaled_grouped_quant", &es_sm100_mxfp8_blockscaled_grouped_quant);
+
+   /*
+    * From fast-hadamard-transform
+Index: sgl-kernel/CMakeLists.txt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
+--- a/sgl-kernel/CMakeLists.txt	(revision bc3ca3002330c7a391e01e1b99c523d6e2856881)
++++ b/sgl-kernel/CMakeLists.txt	(date 1766470680377)
+@@ -124,13 +124,8 @@
+     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "ccache")
+ endif()
+
+-# Configure gencode below SM90
+-if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+-    set(DEFAULT_ENABLE_BELOW_SM90 OFF)
+-    message(STATUS "For aarch64, disable gencode below SM90 by default")
+-else()
+-    set(DEFAULT_ENABLE_BELOW_SM90 ON)
+-endif()
++# Enable gencode below SM90
++set(DEFAULT_ENABLE_BELOW_SM90 ON)
+
+ option(ENABLE_BELOW_SM90 "Enable gencode below SM90" ${DEFAULT_ENABLE_BELOW_SM90})
+
+@@ -145,7 +140,7 @@
+     "-O3"
+     "-Xcompiler"
+     "-fPIC"
+-    "-gencode=arch=compute_90,code=sm_90"
++    "-gencode=arch=compute_87,code=sm_87"
+     "-std=c++17"
+     "-DFLASHINFER_ENABLE_F16"
+     "-DCUTE_USE_PACKED_TUPLE=1"
+@@ -212,57 +207,57 @@
+     )
+ endif()
+
+-if (ENABLE_BELOW_SM90)
+-    list(APPEND SGL_KERNEL_CUDA_FLAGS
+-        "-gencode=arch=compute_80,code=sm_80"
+-        "-gencode=arch=compute_89,code=sm_89"
+-    )
+-    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+-        list(APPEND SGL_KERNEL_CUDA_FLAGS
+-            "-gencode=arch=compute_87,code=sm_87"
+-        )
+-    endif()
+-
+-endif()
+-
+-if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.8" OR SGL_KERNEL_ENABLE_SM100A)
+-    list(APPEND SGL_KERNEL_CUDA_FLAGS
+-        "-gencode=arch=compute_100a,code=sm_100a"
+-        "-gencode=arch=compute_120a,code=sm_120a"
+-    )
+-    # refer sm_121, sm_110 and sm_101 description  https://github.com/pytorch/pytorch/pull/156176
+-    if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "13.0")
+-        list(APPEND SGL_KERNEL_CUDA_FLAGS
+-            "-gencode=arch=compute_103a,code=sm_103a"
+-            "--compress-mode=size"
+-        )
+-        if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+-            list(APPEND SGL_KERNEL_CUDA_FLAGS
+-                "-gencode=arch=compute_110a,code=sm_110a"
+-                "-gencode=arch=compute_121a,code=sm_121a"
+-            )
+-        endif()
+-    else()
+-        if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+-            list(APPEND SGL_KERNEL_CUDA_FLAGS
+-                "-gencode=arch=compute_101a,code=sm_101a"
+-            )
+-        endif()
+-    endif()
+-endif()
++#if (ENABLE_BELOW_SM90)
++    #list(APPEND SGL_KERNEL_CUDA_FLAGS
++        #"-gencode=arch=compute_80,code=sm_80"
++        #"-gencode=arch=compute_89,code=sm_89"
++    #)
++    #if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
++        #list(APPEND SGL_KERNEL_CUDA_FLAGS
++            #"-gencode=arch=compute_87,code=sm_87"
++        #)
++    #endif()
++
++#endif()
++
++#if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.8" OR SGL_KERNEL_ENABLE_SM100A)
++#    list(APPEND SGL_KERNEL_CUDA_FLAGS
++#        "-gencode=arch=compute_100a,code=sm_100a"
++#        "-gencode=arch=compute_120a,code=sm_120a"
++#    )
++#    # refer sm_121, sm_110 and sm_101 description  https://github.com/pytorch/pytorch/pull/156176
++#    if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "13.0")
++#        list(APPEND SGL_KERNEL_CUDA_FLAGS
++#            "-gencode=arch=compute_103a,code=sm_103a"
++#            "--compress-mode=size"
++#        )
++#        if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
++#            list(APPEND SGL_KERNEL_CUDA_FLAGS
++#                "-gencode=arch=compute_110a,code=sm_110a"
++#                "-gencode=arch=compute_121a,code=sm_121a"
++#            )
++#        endif()
++#    else()
++#        if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
++#            list(APPEND SGL_KERNEL_CUDA_FLAGS
++#                "-gencode=arch=compute_101a,code=sm_101a"
++#            )
++#        endif()
++#    endif()
++#endif()
+
+ if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.4")
+     set(SGL_KERNEL_ENABLE_FA3 ON)
+-    list(APPEND SGL_KERNEL_CUDA_FLAGS
+-        "-gencode=arch=compute_90a,code=sm_90a"
+-    )
++    #list(APPEND SGL_KERNEL_CUDA_FLAGS
++        #"-gencode=arch=compute_90a,code=sm_90a"
++    #)
+ endif()
+
+-if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.8" OR SGL_KERNEL_ENABLE_FP4)
+-    list(APPEND SGL_KERNEL_CUDA_FLAGS
+-        "-DENABLE_NVFP4=1"
+-    )
+-endif()
++#if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.8" OR SGL_KERNEL_ENABLE_FP4)
++#    list(APPEND SGL_KERNEL_CUDA_FLAGS
++#        "-DENABLE_NVFP4=1"
++#    )
++#endif()
+
+ # All source files
+ # NOTE: Please sort the filenames alphabetically
+@@ -284,8 +279,6 @@
+     "csrc/elementwise/topk.cu"
+     "csrc/sgl_diffusion/elementwise/timestep_embedding.cu"
+     "csrc/expert_specialization/es_fp8_blockwise.cu"
+-    "csrc/expert_specialization/es_sm100_mxfp8_blockscaled.cu"
+-    "csrc/expert_specialization/es_sm100_mxfp8_blockscaled_group_quant.cu"
+
+     "csrc/gemm/awq_kernel.cu"
+     "csrc/gemm/bmm_fp8.cu"
+@@ -296,11 +289,6 @@
+     "csrc/gemm/fp8_blockwise_gemm_kernel.cu"
+     "csrc/gemm/fp8_gemm_kernel.cu"
+     "csrc/gemm/int8_gemm_kernel.cu"
+-    "csrc/gemm/nvfp4_expert_quant.cu"
+-    "csrc/gemm/nvfp4_quant_entry.cu"
+-    "csrc/gemm/nvfp4_quant_kernels.cu"
+-    "csrc/gemm/nvfp4_scaled_mm_entry.cu"
+-    "csrc/gemm/nvfp4_scaled_mm_kernels.cu"
+     "csrc/gemm/per_tensor_quant_fp8.cu"
+     "csrc/gemm/per_token_group_quant_8bit.cu"
+     "csrc/gemm/per_token_group_quant_8bit_v2.cu"
+@@ -330,7 +318,6 @@
+     "csrc/moe/moe_sum_reduce.cu"
+     "csrc/moe/moe_topk_softmax_kernels.cu"
+     "csrc/moe/moe_topk_sigmoid_kernels.cu"
+-    "csrc/moe/nvfp4_blockwise_moe.cu"
+     "csrc/moe/fp8_blockwise_moe_kernel.cu"
+     "csrc/moe/prepare_moe_input.cu"
+
+@@ -378,20 +365,22 @@
+     OUTPUT_NAME "common_ops"
+     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/sm90"
+ )
++# Also install to sm100 directory for compatibility with older GPUs
++install(TARGETS common_ops_sm90_build LIBRARY DESTINATION sgl_kernel/sm100)
+
+ # =========================== Common SM100+ Build ============================= #
+ # Build SM100+ library with precise math (same namespace, different directory)
+-Python_add_library(common_ops_sm100_build MODULE USE_SABI ${SKBUILD_SABI_VERSION} WITH_SOABI ${SOURCES})
++# Python_add_library(common_ops_sm100_build MODULE USE_SABI ${SKBUILD_SABI_VERSION} WITH_SOABI ${SOURCES})
+
+-target_compile_options(common_ops_sm100_build PRIVATE
+-    $<$<COMPILE_LANGUAGE:CUDA>:${SGL_KERNEL_CUDA_FLAGS}>
+-)
+-target_include_directories(common_ops_sm100_build PRIVATE ${INCLUDES})
++#target_compile_options(common_ops_sm100_build PRIVATE
++#    $<$<COMPILE_LANGUAGE:CUDA>:${SGL_KERNEL_CUDA_FLAGS}>
++#)
++#target_include_directories(common_ops_sm100_build PRIVATE ${INCLUDES})
+ # Set output name and separate build directory to avoid conflicts
+-set_target_properties(common_ops_sm100_build PROPERTIES
+-    OUTPUT_NAME "common_ops"
+-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/sm100"
+-)
++#set_target_properties(common_ops_sm100_build PROPERTIES
++#    OUTPUT_NAME "common_ops"
++#    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/sm100"
++#)
+
+ find_package(Python3 COMPONENTS Interpreter REQUIRED)
+ execute_process(
+@@ -419,7 +408,7 @@
+ )
+
+ target_link_libraries(common_ops_sm90_build PRIVATE ${TORCH_LIBRARIES} c10 cuda cublas cublasLt mscclpp_static)
+-target_link_libraries(common_ops_sm100_build PRIVATE ${TORCH_LIBRARIES} c10 cuda cublas cublasLt mscclpp_static)
++#target_link_libraries(common_ops_sm100_build PRIVATE ${TORCH_LIBRARIES} c10 cuda cublas cublasLt mscclpp_static)
+
+ # sparse flash attention
+ target_compile_definitions(common_ops_sm90_build PRIVATE
+@@ -427,17 +416,17 @@
+     FLASHATTENTION_DISABLE_DROPOUT
+     FLASHATTENTION_DISABLE_UNEVEN_K
+ )
+-target_compile_definitions(common_ops_sm100_build PRIVATE
+-    FLASHATTENTION_DISABLE_BACKWARD
+-    FLASHATTENTION_DISABLE_DROPOUT
+-    FLASHATTENTION_DISABLE_UNEVEN_K
+-)
++#target_compile_definitions(common_ops_sm100_build PRIVATE
++#    FLASHATTENTION_DISABLE_BACKWARD
++#    FLASHATTENTION_DISABLE_DROPOUT
++#    FLASHATTENTION_DISABLE_UNEVEN_K
++#)
+
+ # Install to different subdirectories
+ # CMake will find the built libraries in their respective LIBRARY_OUTPUT_DIRECTORY locations
+ # and install them to the specified destinations
+ install(TARGETS common_ops_sm90_build LIBRARY DESTINATION sgl_kernel/sm90)
+-install(TARGETS common_ops_sm100_build LIBRARY DESTINATION sgl_kernel/sm100)
++#install(TARGETS common_ops_sm100_build LIBRARY DESTINATION sgl_kernel/sm100)
+
+ # ============================ Optional Install: FA3 ============================= #
+ # set flash-attention sources file
+@@ -449,7 +438,7 @@
+         "-O3"
+         "-Xcompiler"
+         "-fPIC"
+-        "-gencode=arch=compute_90a,code=sm_90a"
++        "-gencode=arch=compute_87,code=sm_87"
+         "-std=c++17"
+         "-DCUTE_USE_PACKED_TUPLE=1"
+         "-DCUTLASS_ENABLE_TENSOR_CORE_MMA=1"
+@@ -465,10 +454,10 @@
+     )
+
+     if (ENABLE_BELOW_SM90)
+-        list(APPEND SGL_FLASH_KERNEL_CUDA_FLAGS
+-            "-gencode=arch=compute_80,code=sm_80"
+-            "-gencode=arch=compute_86,code=sm_86"
+-        )
++        #list(APPEND SGL_FLASH_KERNEL_CUDA_FLAGS
++            #"-gencode=arch=compute_80,code=sm_80"
++            #"-gencode=arch=compute_86,code=sm_86"
++        #)
+         # SM8X Logic
+         file(GLOB FA3_SM8X_GEN_SRCS
+             "${repo-flash-attention_SOURCE_DIR}/hopper/instantiations/flash_fwd_hdim*_sm80.cu")
+Index: sgl-kernel/include/sgl_kernel_ops.h
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/sgl-kernel/include/sgl_kernel_ops.h b/sgl-kernel/include/sgl_kernel_ops.h
+--- a/sgl-kernel/include/sgl_kernel_ops.h	(revision bc3ca3002330c7a391e01e1b99c523d6e2856881)
++++ b/sgl-kernel/include/sgl_kernel_ops.h	(date 1766470680380)
+@@ -199,13 +199,6 @@
+  * From csrc/gemm
+  */
+ torch::Tensor awq_dequantize(torch::Tensor qweight, torch::Tensor scales, torch::Tensor qzeros);
+-void cutlass_scaled_fp4_mm(
+-    torch::Tensor& D,
+-    torch::Tensor const& A,
+-    torch::Tensor const& B,
+-    torch::Tensor const& A_sf,
+-    torch::Tensor const& B_sf,
+-    torch::Tensor const& alpha);
+ torch::Tensor int8_scaled_mm(
+     const torch::Tensor& mat_a,
+     const torch::Tensor& mat_b,
+@@ -226,8 +219,6 @@
+     const torch::Tensor& scales_a,
+     const torch::Tensor& scales_b,
+     const torch::Dtype& out_dtype);
+-void scaled_fp4_quant(
+-    torch::Tensor& output, torch::Tensor const& input, torch::Tensor& output_scale, torch::Tensor const& input_scale);
+ void sgl_per_token_group_quant_8bit(
+     at::Tensor input,
+     at::Tensor output_q,
+@@ -417,21 +408,6 @@
+     const torch::Tensor& expert_offsets,
+     const torch::Tensor& sf_offsets);
+
+-void scaled_fp4_experts_quant(
+-    torch::Tensor& output,
+-    torch::Tensor& output_scale,
+-    torch::Tensor const& input,
+-    torch::Tensor const& input_global_scale,
+-    torch::Tensor const& input_offset_by_experts,
+-    torch::Tensor const& output_scale_offset_by_experts);
+-
+-void silu_and_mul_scaled_fp4_experts_quant(
+-    torch::Tensor& output,
+-    torch::Tensor& output_scale,
+-    torch::Tensor const& input,
+-    torch::Tensor const& input_global_scale,
+-    torch::Tensor const& mask,
+-    bool use_silu_and_mul);
+
+ /*
+  * From csrc/moe/cutlass_moe/w4a8
+@@ -918,24 +894,6 @@
+     const torch::Tensor& expert_offsets,
+     const torch::Tensor& workspace);
+
+-void es_sm100_mxfp8_blockscaled_grouped_mm(
+-    const torch::Tensor& a,
+-    const torch::Tensor& b,
+-    const torch::Tensor& sfa,
+-    const torch::Tensor& sfb,
+-    torch::Tensor& d,
+-    const torch::Tensor& problem_sizes,
+-    const torch::Tensor& expert_offsets,
+-    const torch::Tensor& blockscale_offsets);
+-
+-void es_sm100_mxfp8_blockscaled_grouped_quant(
+-    const torch::Tensor& input,
+-    const torch::Tensor& problem_sizes,
+-    const torch::Tensor& expert_offsets,
+-    const torch::Tensor& blockscale_offsets,
+-    torch::Tensor& quant_output,
+-    torch::Tensor& scale_factor);
+-
+ /*
+  * From fast-hadamard-transform
+  */
