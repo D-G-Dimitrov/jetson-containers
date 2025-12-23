@@ -89,7 +89,8 @@ if [[ "$(uname -m)" == "aarch64" && "${TORCH_CUDA_ARCH_LIST}" = "8.7" ]]; then
   # Note: make sure you have sufficient swap space set to avoid out of memory problems
   MAX_JOBS=$(nproc)
   export MAX_JOBS=$MAX_JOBS
-  export CMAKE_BUILD_PARALLEL_LEVEL=$((MAX_JOBS/2))
+  export CMAKE_BUILD_PARALLEL_LEVEL=$MAX_JOBS
+  # export CMAKE_BUILD_PARALLEL_LEVEL=$((MAX_JOBS/2))
   # Apply patch for SM 87
   if ! git apply -p1 ${TMP}/sm_87-${SGL_KERNEL_VERSION}.diff ;then
     warn "Patch for SM 8.7 FAILED!" && exit 1
