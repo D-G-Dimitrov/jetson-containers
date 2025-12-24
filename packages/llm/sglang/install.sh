@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-uv pip install \
+uv pip install -v --extra-index-url https://pypi.org/simple \
   compressed-tensors \
   datasets \
   decord2 \
