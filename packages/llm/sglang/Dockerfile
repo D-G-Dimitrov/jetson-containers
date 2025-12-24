@@ -37,4 +37,4 @@ RUN if [ -f $TMP/.build.failed ]; then \
       exit 1; \
     fi
 
-RUN /tmp/transformers/install.sh
+#RUN /tmp/transformers/install.sh
