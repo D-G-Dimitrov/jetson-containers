@@ -66,7 +66,7 @@ echo "📦 Installing the sglang wheel from ${PIP_WHEEL_DIR} and its dependencie
 uv pip install -v --extra-index-url https://pypi.org/simple --find-links="${PIP_WHEEL_DIR}" "sglang[all]"
 
 # Your original script installed 'gemlite' here, so we keep it.
-uv pip install gemlite orjson pybase64
+uv pip install -v --extra-index-url https://pypi.org/simple gemlite orjson pybase64
 
 echo "🎉 SGLang and all dependencies installed successfully!"
 
