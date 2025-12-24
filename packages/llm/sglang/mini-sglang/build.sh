@@ -33,6 +33,9 @@ sed -i \
   pyproject.toml
 echo "Patched ${REPO_DIR}/python/pyproject.toml to relax version constraints"
 
+# --- PRE-INSTALL PYTHON DEPENDENCIES ---
+uv pip install -v --extra-index-url https://pypi.org/simple uvicorn fastapi openai
+
 # --- CONFIGURE PARALLEL BUILD ---
 if [[ -z "${IS_SBSA:-}" || "${IS_SBSA}" == "0" || "${IS_SBSA,,}" == "false" ]]; then
   export CORES=$(nproc) # Automatically use all available cores
@@ -49,7 +52,6 @@ echo "🚀 Building mini-sglang wheel ONLY with MAX_JOBS=${CORES}"
 # We will install dependencies later when we install the built wheel.
 uv build --wheel \
     --no-build-isolation \
-    --extra-index-url https://pypi.org/simple \
     . \
     --out-dir "${PIP_WHEEL_DIR}"
 
