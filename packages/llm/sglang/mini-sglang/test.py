@@ -1,27 +1,35 @@
 #!/usr/bin/env python3
-import gc
-import torch
 
-def clear_memory():
-    """Free GPU and CPU memory before running SGLang."""
-    try:
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-            torch.cuda.ipc_collect()
-            torch.cuda.synchronize()
-        gc.collect()
-        print("✅ Memory cleared")
-    except Exception as e:
-        print(f"⚠️ Memory cleanup failed: {e}")
+import time
+from random import randint, seed
 
-print('testing SGLang...')
-clear_memory()  # <-- Clean before anything else
+from minisgl.core import SamplingParams
+from minisgl.llm import LLM
 
-import minisgl as sgl
+def main():
+    seed(0)
+    # align the hyperparameters
+    llm = LLM(
+        "Qwen/Qwen3-0.6B",
+        max_seq_len_override=4096,
+        max_extend_tokens=16384,
+        cuda_graph_max_bs=256,
+        memory_ratio=0.5
+    )
 
-print(f"SGLang version: {sgl.__version__}")
-print(f"CUDA available: {torch.cuda.is_available()}")
-if torch.cuda.is_available():
-    print(f"CUDA device: {torch.cuda.get_device_name(0)}")
+    sampling_params = [
+        SamplingParams(temperature=0.6, max_tokens=50),
+        SamplingParams(temperature=0.1, max_tokens=50)
+    ]
 
-print('SGLang OK\n')
+    prompts = [
+        "Ahoy! How many helicopters can a human eat in one sitting?",
+        "Avast! What's the future of AI?",
+    ]
+
+    outputs = llm.generate(prompts, sampling_params)
+    for output in outputs:
+        print(output['text'])
+
+if __name__ == "__main__":
+    main()
