@@ -10,7 +10,6 @@ def vllm(version, branch=None, requires=None, default=False, depends=None):
     if depends:
         pkg['depends'] = update_dependencies(pkg['depends'], depends)
 
-    suffix = branch if branch else version
     branch = branch if branch else f'v{version}'
 
     pkg['name'] = f'vllm:{version}'
