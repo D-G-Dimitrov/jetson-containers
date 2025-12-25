@@ -13,7 +13,7 @@ def vllm(version, branch=None, requires=None, default=False, depends=None):
     suffix = branch if branch else version
     branch = branch if branch else f'v{version}'
 
-    pkg['name'] = f'vllm:{suffix}'
+    pkg['name'] = f'vllm:{version}'
     pkg['build_args'] = {
         'VLLM_VERSION': version,
         'VLLM_BRANCH': branch,
@@ -22,7 +22,7 @@ def vllm(version, branch=None, requires=None, default=False, depends=None):
     }
 
     builder = pkg.copy()
-    builder['name'] = f'vllm:{suffix}-builder'
+    builder['name'] = f'vllm:{version}-builder'
     builder['build_args'] = {**pkg['build_args'], **{'FORCE_BUILD': 'on'}}
 
     if default:
