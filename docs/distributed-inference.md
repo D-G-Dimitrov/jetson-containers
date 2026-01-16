@@ -34,12 +34,11 @@ jetson-containers build vllm
 #### Example with 2x `Jetson Orin AGX 64 GB RAM` dev kits
 Below there are 2 ways to run distributed inference on 2 Jetson devices:
 1. Manual docker method: running docker containers and starting Ray on both devices (requires docker knowledge)
-2. Using the helper script at `./distributed-inference.sh` (easier), just skip the `Manual docker method` below if using this method
+2. Using the helper script at `./scripts/distributed-inference.sh` (easier), just skip the `Manual docker method` below if using this method
 
 - In this example one Jetson is referenced as `HEAD NODE` and the other as `WORKER NODE`
 - Tested with images:
-  - `mitakad/vllm:0.12.0-r36.4.tegra-aarch64-cp310-cu126-22.04-truncated`
-  - `mitakad/vllm:0.11.2-r36.4.tegra-aarch64-cp310-cu126-22.04-truncated`
+  - `mitakad/vllm:0.13.0-r36.4.tegra-aarch64-cp312-cu129-24.04`
 
 #### 1. Manual docker method:
 - On the `HEAD NODE`, first get the IP address of the device and the network interface name to be used for communication (e.g. `eno1`, `eth0`, etc):
@@ -68,7 +67,7 @@ docker run --runtime nvidia -it \
 -e TIKTOKEN_ENCODINGS_BASE=/data/encodings \
 -e HF_TOKEN=${HF_TOKEN} \
 --name vllm_112_eth \
-mitakad/vllm:0.11.2-r36.4.tegra-aarch64-cp310-cu126-22.04-truncated
+mitakad/vllm:0.13.0-r36.4.tegra-aarch64-cp312-cu129-24.04
 ```
 - On the `WORKER NODE` run same command as above but this time set the variables accordingly:
   - `VLLM_HOST_IP` is the IP address of the `WORKER NODE`
@@ -113,7 +112,7 @@ curl --location 'http://{{ set HEAD NODE IP here}}:8000/v1/chat/completions' \
         }'
 ```
 
-#### 2. Helper script to run distributed inference on 2 Jetson devices at `./distributed-inference.sh`
+#### 2. Helper script to run distributed inference on 2 Jetson devices at `./scripts/distributed-inference.sh`
 
 Below is an example of how to use the helper script.
 
@@ -126,8 +125,8 @@ Using network interface `eno1` for communication.
 - On `HEAD NODE`:
     1. This is the command <u>without</u> the example values filled in:
     ```bash
-        bash distributed-inference.sh \
-             mitakad/vllm:0.11.2-r36.4.tegra-aarch64-cp310-cu126-22.04-truncated \
+        bash ./scripts/distributed-inference.sh \
+             mitakad/vllm:0.13.0-r36.4.tegra-aarch64-cp312-cu129-24.04 \
              <HEAD NODE IP> \
              --head  \
              <network_interface> \
@@ -138,8 +137,8 @@ Using network interface `eno1` for communication.
     2. This is the command <u>with</u> the example values filled in:
 
     ```bash
-    bash distributed-inference.sh \
-        mitakad/vllm:0.11.2-r36.4.tegra-aarch64-cp310-cu126-22.04-truncated \
+    bash ./scripts/distributed-inference.sh \
+        mitakad/vllm:0.13.0-r36.4.tegra-aarch64-cp312-cu129-24.04 \
         192.168.1.100 \
         --head \
         eno1 \
@@ -151,8 +150,8 @@ Using network interface `eno1` for communication.
 
     1. This is the command <u>without</u> the example values filled in:
     ```bash
-        bash distributed-inference.sh \
-             mitakad/vllm:0.11.2-r36.4.tegra-aarch64-cp310-cu126-22.04-truncated \
+        bash ./scripts/distributed-inference.sh \
+             mitakad/vllm:0.13.0-r36.4.tegra-aarch64-cp312-cu129-24.04 \
              <HEAD NODE IP> \
              --worker  \
              <network_interface> \
@@ -162,8 +161,8 @@ Using network interface `eno1` for communication.
 
     2. This is the command <u>with</u> the example values filled in:
     ```bash
-    bash distributed-inference.sh \
-        mitakad/vllm:0.11.2-r36.4.tegra-aarch64-cp310-cu126-22.04-truncated \
+    bash ./scripts/distributed-inference.sh \
+        mitakad/vllm:0.13.0-r36.4.tegra-aarch64-cp312-cu129-24.04 \
         192.168.1.100 \
         --worker \
         eno1 \
@@ -172,7 +171,7 @@ Using network interface `eno1` for communication.
     ```
 
 - Then start the distributed inference on the `HEAD NODE` container:
-  1. example command for `gpt-oss-20b` (~ 12 t/s on 10 Gbit connection):
+  1. Example command for `gpt-oss-20b` (~ 12 t/s on 10 Gbit connection):
 
     ```bash
     docker exec -it jetson-cluster-node \
@@ -188,7 +187,7 @@ Using network interface `eno1` for communication.
         --distributed-executor-backend ray
     ```
 
-  2. example command for `gpt-oss-120b` (~ 9 t/s on 10 Gbit connection):
+  2. Example command for `gpt-oss-120b` (~ 9 t/s on 10 Gbit connection):
 
     ```bash
     docker exec -it jetson-cluster-node \
@@ -202,7 +201,7 @@ Using network interface `eno1` for communication.
         --enable-expert-parallel \
         --distributed-executor-backend ray
     ```
-  3. example command for `QuantTrio/GLM-4.5-Air-AWQ-FP16Mix` (~ 6 t/s on 10 Gbit connection):
+  3. Example command for `QuantTrio/GLM-4.5-Air-AWQ-FP16Mix` (~ 6 t/s on 10 Gbit connection):
 
     ```bash
     docker exec -it jetson-cluster-node \
