@@ -18,4 +18,3 @@ ARG XGRAMMAR_VERSION \
 COPY build.sh install.sh /tmp/xgrammar/
 
 RUN /tmp/xgrammar/install.sh || /tmp/xgrammar/build.sh
-RUN /tmp/transformers/install.sh
