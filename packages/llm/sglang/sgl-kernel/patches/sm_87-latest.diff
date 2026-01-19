@@ -4,10 +4,10 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/sgl-kernel/csrc/common_extension.cc b/sgl-kernel/csrc/common_extension.cc
---- a/sgl-kernel/csrc/common_extension.cc	(revision bc3ca3002330c7a391e01e1b99c523d6e2856881)
-+++ b/sgl-kernel/csrc/common_extension.cc	(date 1766470680372)
+--- a/sgl-kernel/csrc/common_extension.cc	(revision 5836324c55ff60c7257085afc84948d37bb144bf)
++++ b/sgl-kernel/csrc/common_extension.cc	(date 1768804411820)
 @@ -157,38 +157,11 @@
-   m.def("sgl_per_token_quant_fp8(Tensor input, Tensor output_q, Tensor output_s) -> ()");
+   m.def("sgl_per_token_quant_fp8(Tensor input, Tensor! output_q, Tensor! output_s) -> ()");
    m.impl("sgl_per_token_quant_fp8", torch::kCUDA, &sgl_per_token_quant_fp8);
 
 -  m.def(
@@ -66,8 +66,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
---- a/sgl-kernel/CMakeLists.txt	(revision bc3ca3002330c7a391e01e1b99c523d6e2856881)
-+++ b/sgl-kernel/CMakeLists.txt	(date 1766470680377)
+--- a/sgl-kernel/CMakeLists.txt	(revision 5836324c55ff60c7257085afc84948d37bb144bf)
++++ b/sgl-kernel/CMakeLists.txt	(date 1768804379096)
 @@ -124,13 +124,8 @@
      set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "ccache")
  endif()
@@ -77,10 +77,9 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 -    set(DEFAULT_ENABLE_BELOW_SM90 OFF)
 -    message(STATUS "For aarch64, disable gencode below SM90 by default")
 -else()
--    set(DEFAULT_ENABLE_BELOW_SM90 ON)
--endif()
 +# Enable gencode below SM90
-+set(DEFAULT_ENABLE_BELOW_SM90 ON)
+     set(DEFAULT_ENABLE_BELOW_SM90 ON)
+-endif()
 
  option(ENABLE_BELOW_SM90 "Enable gencode below SM90" ${DEFAULT_ENABLE_BELOW_SM90})
 
@@ -321,8 +320,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/sgl-kernel/include/sgl_kernel_ops.h b/sgl-kernel/include/sgl_kernel_ops.h
---- a/sgl-kernel/include/sgl_kernel_ops.h	(revision bc3ca3002330c7a391e01e1b99c523d6e2856881)
-+++ b/sgl-kernel/include/sgl_kernel_ops.h	(date 1766470680380)
+--- a/sgl-kernel/include/sgl_kernel_ops.h	(revision 5836324c55ff60c7257085afc84948d37bb144bf)
++++ b/sgl-kernel/include/sgl_kernel_ops.h	(date 1768804442349)
 @@ -199,13 +199,6 @@
   * From csrc/gemm
   */
