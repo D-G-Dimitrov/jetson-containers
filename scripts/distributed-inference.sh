@@ -139,7 +139,7 @@ if [ -n "${VLLM_HOST_IP}" ]; then
         -e "RAY_OVERRIDE_NODE_IP_ADDRESS=${VLLM_HOST_IP}"
     )
     # Build Ray start command using VLLM_HOST_IP explicitly for node IP address
-    RAY_START_CMD="ray start -v --block --num-gpus 1"
+    RAY_START_CMD="RAY_memory_monitor_refresh_ms=0 ray start -v --block --num-gpus 1 --object-store-memory=1073741824"
     if [ "$NUM_CPUS_SET" = true ]; then
         RAY_START_CMD+=" --num-cpus=${NUM_CPUS}"
     fi
@@ -151,7 +151,7 @@ if [ -n "${VLLM_HOST_IP}" ]; then
 
 else
     # Build Ray start command without explicit node IP address
-    RAY_START_CMD="ray start -v --block --num-gpus 1"
+    RAY_START_CMD="RAY_memory_monitor_refresh_ms=0 ray start -v --block --num-gpus 1 --object-store-memory=1073741824"
     if [ "$NUM_CPUS_SET" = true ]; then
         RAY_START_CMD+=" --num-cpus=${NUM_CPUS}"
     fi
