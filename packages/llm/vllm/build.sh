@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-uv pip uninstall vllm
+uv pip uninstall vllm && rm -rf /opt/vllm
 uv pip install pre-commit nanobind==2.5.0
 # Clone the repository if it doesn't exist
 git clone --branch=${VLLM_BRANCH} --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm ||
