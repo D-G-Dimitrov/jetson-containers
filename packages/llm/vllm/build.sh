@@ -5,7 +5,15 @@ uv pip uninstall vllm && rm -rf /opt/vllm
 uv pip install pre-commit nanobind==2.5.0
 # Clone the repository if it doesn't exist
 git clone --branch=${VLLM_BRANCH} --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm ||
-git clone --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm
+{ # fallback: try to init/fetch the specific commit
+  mkdir /opt/vllm && cd /opt/vllm && \
+  git init && git remote add origin https://github.com/vllm-project/vllm && \
+  git fetch --depth 1 origin ${VLLM_BRANCH} && git checkout FETCH_HEAD
+} || \
+{ # last resort: clone default branch
+  cd "$(dirname /opt/vllm)" && rm -rf "$(basename /opt/vllm)" && \
+  git clone --recursive --depth 1 https://github.com/vllm-project/vllm /opt/vllm
+}
 
 cd /opt/vllm
 env
