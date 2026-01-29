@@ -19,7 +19,7 @@ clear_memory()
 
 import bitsandbytes
 import transformers
-from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
+from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer, BitsAndBytesConfig
 from threading import Thread
 
 print('transformers version:', transformers.__version__)
@@ -40,7 +40,7 @@ print(f'loading {model_name} with bitsandbytes (8-bit)')
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
     device_map='cuda',
-    load_in_8bit=True,
+    quantization_config=BitsAndBytesConfig(load_in_8bit=True),
     trust_remote_code=True
 )
 tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -49,11 +49,17 @@ streamer = TextIteratorStreamer(tokenizer)
 prompt = [{'role': 'user', 'content': 'Can I get a recipe for French Onion soup?'}]
 
 if hasattr(tokenizer, 'apply_chat_template'):
-    inputs = tokenizer.apply_chat_template(
+    # apply_chat_template returns a BatchEncoding, extract input_ids
+    encoded = tokenizer.apply_chat_template(
         prompt,
         add_generation_prompt=True,
         return_tensors='pt'
-    ).to(model.device)
+    )
+    # Handle both cases: direct tensor or BatchEncoding
+    if hasattr(encoded, 'input_ids'):
+        inputs = encoded.input_ids.to(model.device)
+    else:
+        inputs = encoded.to(model.device)
 else:
     inputs = tokenizer(
         "Once upon a time, in a land far far away, ",
