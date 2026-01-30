@@ -22,7 +22,9 @@ if [ -z "$TRANSFORMERS_PACKAGE" ]; then
 fi
 
 echo "Installing transformers $TRANSFORMERS_VERSION (from $TRANSFORMERS_PACKAGE)"
-uv pip install ${TRANSFORMERS_PACKAGE}
+#uv pip install ${TRANSFORMERS_PACKAGE}
+# install altest dev version always from git
+uv pip install git+https://github.com/huggingface/transformers.git
 
 # "/usr/local/lib/python3.8/dist-packages/transformers/modeling_utils.py", line 118
 # AttributeError: module 'torch.distributed' has no attribute 'is_initialized'
