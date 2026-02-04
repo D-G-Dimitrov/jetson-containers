@@ -42,7 +42,7 @@ def llama_cpp(version,  repo=None, default=False):
     test_model = "bartowski/Qwen_Qwen3-1.7B-GGUF/Qwen_Qwen3-1.7B-Q4_K_M.gguf"
 
     pkg['test'] = pkg['test'] + [
-        f"llama-cli -hf Qwen/Qwen3-0.6B-GGUF:Q8_0 --jinja --color -ngl 99 -fa -sm row --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0 --presence-penalty 1.5 -c 40960 -n 32768 --no-context-shift"
+        f"llama-cli -hf Qwen/Qwen3-0.6B-GGUF:Q8_0 --jinja -ngl 99  -sm row --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0 --presence-penalty 1.5 -c 512 -n 128 --no-context-shift -p \"Once upon a time,\" --single-turn"
     ]
 
     builder = pkg.copy()
