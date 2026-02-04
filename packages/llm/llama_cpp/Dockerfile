@@ -11,13 +11,9 @@ ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 
 ARG LLAMA_CPP_VERSION \
-    LLAMA_CPP_VERSION_PY \
-    LLAMA_CPP_BRANCH \
-    LLAMA_CPP_BRANCH_PY \
-    LLAMA_CPP_FLAGS \
+    LLAMA_CPP_REPO \
     CUDA_ARCHITECTURES \
     FORCE_BUILD=off \
-    SOURCE_DIR=/opt/llama_cpp_python \
     TMP=/tmp/llama_cpp
 
 COPY build.sh install.sh $TMP/

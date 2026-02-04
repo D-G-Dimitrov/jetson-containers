@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 echo "Building llama-cpp-python ${LLAMA_CPP_VERSION_PY}"
 
-SOURCE_CPP=/opt/llama.cpp
+SOURCE_DIR=/opt/llama.cpp
 INSTALL_CPP=${SOURCE_DIR}/build/dist
 
 set -ex
@@ -9,7 +9,7 @@ set -ex
 git clone --recursive --branch=${LLAMA_CPP_VERSION} --depth=1 https://github.com/${LLAMA_CPP_REPO} ${SOURCE_DIR}
 
 # install c++ binaries
-cd ${SOURCE_CPP}
+cd ${SOURCE_DIR}
 
 apt update && apt install -y ccache libssl-dev
 
