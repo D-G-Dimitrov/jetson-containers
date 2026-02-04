@@ -33,7 +33,8 @@ cmake -B build ${LLAMA_CPP_FLAGS} \
     -DCMAKE_INSTALL_PREFIX=${INSTALL_CPP} \
     -DLLAMA_BUILD_SERVER=ON \
     -DLLAMA_BUILD_EXAMPLES=ON \
-    -DLLAMA_BUILD_TESTS=OFF
+    -DLLAMA_BUILD_TESTS=OFF \
+    -DGGML_RPC=ON
 
 cmake --build build --config Release --parallel $(nproc)
 cmake --install build
