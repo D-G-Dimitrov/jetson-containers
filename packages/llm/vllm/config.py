@@ -10,9 +10,10 @@ def vllm(version, branch=None, requires=None, default=False, depends=None):
     if depends:
         pkg['depends'] = update_dependencies(pkg['depends'], depends)
 
+    suffix = branch if branch else version
     branch = branch if branch else f'v{version}'
 
-    pkg['name'] = f'vllm:{version}'
+    pkg['name'] = f'vllm:{suffix}'
     pkg['build_args'] = {
         'VLLM_VERSION': version,
         'VLLM_BRANCH': branch,
@@ -21,7 +22,7 @@ def vllm(version, branch=None, requires=None, default=False, depends=None):
     }
 
     builder = pkg.copy()
-    builder['name'] = f'vllm:{version}-builder'
+    builder['name'] = f'vllm:{suffix}-builder'
     builder['build_args'] = {**pkg['build_args'], **{'FORCE_BUILD': 'on'}}
 
     if default:
@@ -31,12 +32,5 @@ def vllm(version, branch=None, requires=None, default=False, depends=None):
     return pkg, builder
 
 package = [
-    vllm('0.10.2', depends=['flashinfer'], requires=['<=36', '<cu130'], default=False),
-    vllm('0.11.2', depends=['flashinfer:0.5.3'], default=False),
-    vllm('0.11.3', depends=['flashinfer:0.5.4'], default=False),
-    vllm('0.12.0', depends=['flashinfer:0.5.4'], default=False),
-    vllm('0.13.0', depends=['flashinfer:0.5.4'], default=False),
-    vllm('0.14.0', depends=['flashinfer:0.5.4'], default=True),
     vllm('0.15.1', depends=['flashinfer'], default=True),
-    vllm('latest', 'main', depends=['flashinfer'], default=False),
 ]
