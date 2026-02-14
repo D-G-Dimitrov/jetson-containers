@@ -11,4 +11,9 @@ sed -i \
   -e 's|^fa3-fwd.*||g' \
   requirements/cuda.txt
 
-uv pip install -v .
+uv pip install -r requirements/common.txt -v
+python3 -m setuptools_scm
+
+uv build --wheel --no-build-isolation -v --out-dir ${REPO_DIR}/wheels .
+uv pip install ${REPO_DIR}/wheels/vllm*.whl
+
