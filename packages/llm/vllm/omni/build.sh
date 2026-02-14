@@ -4,7 +4,7 @@ set -x
 
 REPO_DIR="/opt/vllm-omni"
 
-git clone --recursive --depth 1 --branch "v${VLLM_OMNI_VERSION}"  "${VLLM_OMNI_REPO}" "${REPO_DIR}"
+git clone --recursive --depth 1 --branch "v${VLLM_OMNI_VERSION}"  https://github.com/"${VLLM_OMNI_REPO}".git "${REPO_DIR}"
 
 cd "${REPO_DIR}" || exit 1
 
