@@ -9,6 +9,6 @@ cd "${REPO_DIR}" || exit 1
 
 sed -i \
   -e 's|^fa3-fwd.*||g' \
-  requirements/common.txt
+  requirements/cuda.txt
 
 uv pip install -v .
