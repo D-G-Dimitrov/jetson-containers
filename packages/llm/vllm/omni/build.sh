@@ -11,6 +11,10 @@ sed -i \
   -e 's|^fa3-fwd.*||g' \
   requirements/cuda.txt
 
+sed -i \
+  -e '/fa3-fwd*/d' \
+  pyproject.toml
+
 uv pip install -r requirements/common.txt -v
 python3 -m setuptools_scm
 
