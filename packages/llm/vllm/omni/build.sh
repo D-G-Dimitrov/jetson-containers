@@ -7,4 +7,8 @@ git clone --recursive --depth 1 --branch "v${VLLM_OMNI_VERSION}"  https://github
 
 cd "${REPO_DIR}" || exit 1
 
+sed -i \
+  -e 's|^fa3-fwd.*||g' \
+  requirements/common.txt
+
 uv pip install -v .
