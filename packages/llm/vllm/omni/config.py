@@ -1,7 +1,7 @@
 import os
 from jetson_containers import update_dependencies
 
-def vllm_omni(version, repo=None, depends=None, requires=None, default=False):
+def vllm_omni(version, branch, repo=None, depends=None, requires=None, default=False):
     name = 'vllm-omni'
     pkg = package.copy()
 
@@ -16,6 +16,7 @@ def vllm_omni(version, repo=None, depends=None, requires=None, default=False):
     pkg['build_args'] = {
         'VLLM_OMNI_VERSION': version,
         'VLLM_OMNI_REPO': repo,
+        'VLLM_OMNI_BRANCH': branch,
     }
 
     builder = pkg.copy()
@@ -30,5 +31,7 @@ def vllm_omni(version, repo=None, depends=None, requires=None, default=False):
 
 
 package = [
-    vllm_omni('0.14.0', depends=['vllm'] , repo='vllm-project/vllm-omni',default=True),
+    vllm_omni('0.14.0', 'release/v0.14.0',  depends=['vllm'] , repo='vllm-project/vllm-omni',default=True),
+    vllm_omni('v0.16.0rc1', 'release/v0.16.0rc1' ,depends=['vllm'] , repo='vllm-project/vllm-omni',default=True)
+
 ]
