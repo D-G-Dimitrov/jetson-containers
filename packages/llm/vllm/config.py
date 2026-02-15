@@ -32,6 +32,7 @@ def vllm(version, branch=None, requires=None, default=False, depends=None):
     return pkg, builder
 
 package = [
+    vllm('0.14.0', depends=['flashinfer']),
     vllm('0.15.1', depends=['flashinfer']),
     vllm('0.16.0', depends=['flashinfer'], default=True),
 ]
