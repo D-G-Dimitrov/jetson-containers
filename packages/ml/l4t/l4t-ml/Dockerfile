@@ -2,7 +2,7 @@
 # name: l4t-ml
 # group: ml
 # depends: [
-#   tensorflow2, jax,
+#   jax,
 #   pytorch, torchvision, torchaudio, torchao,
 #   pycuda, cupy, cuda-python,
 #   onnxruntime, numba,
