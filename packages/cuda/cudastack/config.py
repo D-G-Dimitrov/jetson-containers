@@ -53,7 +53,7 @@ def cuda_stack_args():
                 cudnn_packages = "libcudnn9-cuda-12 libcudnn9-dev-cuda-12 libcudnn9-samples"
                 tensorrt_ver = '10.0'
                 tensorrt_url = f"{tensorrt_base_url}/10.0.1/tars/TensorRT-10.0.1.6.l4t.aarch64-gnu.cuda-12.4.tar.gz"
-            nccl_ver = '2.28.7'
+            nccl_ver = '2.29.3'
         else:  # JetPack 5
             cudnn_ver = '8.6.0'
             cudnn_url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cudnn/libcudnn8_8.6.0.166-1+cuda11.4_arm64.deb"
