@@ -79,7 +79,7 @@ uv build --wheel --no-build-isolation -v --out-dir /opt/vllm/wheels .
 uv pip install /opt/vllm/wheels/vllm*.whl
 
 cd /opt/vllm
-uv pip install compressed-tensors transformers xgrammar
+uv pip install compressed-tensors xgrammar "transformers @ git+https://github.com/huggingface/transformers.git@main"
 
 # Optionally upload to a repository using Twine
-twine upload --verbose /opt/vllm/wheels/vllm*.whl || echo "Failed to upload wheel to ${TWINE_REPOSITORY_URL}"
+#twine upload --verbose /opt/vllm/wheels/vllm*.whl || echo "Failed to upload wheel to ${TWINE_REPOSITORY_URL}"
