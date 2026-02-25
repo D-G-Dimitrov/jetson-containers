@@ -37,6 +37,6 @@ package = [
     vllm('0.12.0', depends=['flashinfer:0.5.4'], default=False),
     vllm('0.13.0', depends=['flashinfer'], default=False),
     vllm('0.14.0', depends=['flashinfer'], default=False),
-    vllm('0.16.0', depends=['flashinfer'], default=False),
+    vllm('0.16.0', branch='releases/v0.16.0', depends=['flashinfer'], default=False),
     vllm('0.16.1', depends=['flashinfer'], default=True),
 ]
