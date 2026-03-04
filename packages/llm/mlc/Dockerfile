@@ -2,7 +2,7 @@
 # name: mlc
 # group: llm
 # config: config.py
-# depends: [transformers, triton, llvm:22, sudonim]
+# depends: [transformers, triton, llvm:21, sudonim]
 # requires: '>=35'
 # test: [test.py, test.sh]
 # docs: docs.md
@@ -14,7 +14,7 @@ ARG TVM_VERSION \
     MLC_VERSION \
     MLC_COMMIT \
     MLC_PATCH \
-    LLVM_VERSION=22 \
+    LLVM_VERSION=21 \
     FORCE_BUILD=off \
     SOURCE_DIR=/opt/mlc-llm \
     TMP_DIR=/tmp/mlc
