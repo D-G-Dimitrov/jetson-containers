@@ -22,7 +22,6 @@ fi
 uv pip install \
 	compressed-tensors \
 	xgrammar \
-	transformers \
 	vllm==${VLLM_VERSION}+${CUDA_SUFFIX}
 
 # File "/opt/venv/lib/python3.12/site-packages/gguf/gguf_reader.py"

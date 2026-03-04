@@ -12,7 +12,7 @@ git clone --branch=${VLLM_BRANCH} --recursive --depth=1 https://github.com/vllm-
 } || \
 { # last resort: clone default branch
   cd "$(dirname /opt/vllm)" && rm -rf "$(basename /opt/vllm)" && \
-  git clone --recursive --depth 1 https://github.com/vllm-project/vllm /opt/vllm
+  git clone --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm
 }
 
 cd /opt/vllm
