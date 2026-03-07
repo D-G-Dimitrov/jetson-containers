@@ -4,8 +4,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/sgl-kernel/csrc/common_extension.cc b/sgl-kernel/csrc/common_extension.cc
---- a/sgl-kernel/csrc/common_extension.cc	(revision 5836324c55ff60c7257085afc84948d37bb144bf)
-+++ b/sgl-kernel/csrc/common_extension.cc	(date 1768804411820)
+--- a/sgl-kernel/csrc/common_extension.cc	(revision e714db81a0e5c730f115ba2ee4302d94e1d51303)
++++ b/sgl-kernel/csrc/common_extension.cc	(date 1772868308258)
 @@ -157,38 +157,11 @@
    m.def("sgl_per_token_quant_fp8(Tensor input, Tensor! output_q, Tensor! output_s) -> ()");
    m.impl("sgl_per_token_quant_fp8", torch::kCUDA, &sgl_per_token_quant_fp8);
@@ -45,30 +45,15 @@ diff --git a/sgl-kernel/csrc/common_extension.cc b/sgl-kernel/csrc/common_extens
 
    m.def("dsv3_router_gemm(Tensor! output, Tensor mat_a, Tensor mat_b) -> ()");
    m.impl("dsv3_router_gemm", torch::kCUDA, &dsv3_router_gemm);
-@@ -583,14 +556,6 @@
-       "stride_a, Tensor stride_b, Tensor stride_d, Tensor problem_sizes, Tensor expert_offsets, Tensor workspace) -> "
-       "()");
-   m.impl("es_fp8_blockwise_scaled_grouped_mm", &es_fp8_blockwise_scaled_grouped_mm);
--  m.def(
--      "es_sm100_mxfp8_blockscaled_grouped_mm(Tensor a, Tensor b, Tensor sfa, Tensor sfb, Tensor d, Tensor "
--      "problem_sizes, Tensor expert_offsets, Tensor blockscale_offsets) -> ()");
--  m.impl("es_sm100_mxfp8_blockscaled_grouped_mm", &es_sm100_mxfp8_blockscaled_grouped_mm);
--  m.def(
--      "es_sm100_mxfp8_blockscaled_grouped_quant(Tensor input, Tensor problem_sizes, Tensor expert_offsets, Tensor "
--      "blockscale_offsets, Tensor quant_output, Tensor scale_factor) -> () ");
--  m.impl("es_sm100_mxfp8_blockscaled_grouped_quant", &es_sm100_mxfp8_blockscaled_grouped_quant);
-
-   /*
-    * From fast-hadamard-transform
 Index: sgl-kernel/CMakeLists.txt
 IDEA additional info:
 Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
---- a/sgl-kernel/CMakeLists.txt	(revision 5836324c55ff60c7257085afc84948d37bb144bf)
-+++ b/sgl-kernel/CMakeLists.txt	(date 1768804379096)
-@@ -124,13 +124,8 @@
+--- a/sgl-kernel/CMakeLists.txt	(revision e714db81a0e5c730f115ba2ee4302d94e1d51303)
++++ b/sgl-kernel/CMakeLists.txt	(date 1772868308299)
+@@ -115,13 +115,8 @@
      set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "ccache")
  endif()
 
@@ -83,7 +68,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 
  option(ENABLE_BELOW_SM90 "Enable gencode below SM90" ${DEFAULT_ENABLE_BELOW_SM90})
 
-@@ -145,7 +140,7 @@
+@@ -136,7 +131,7 @@
      "-O3"
      "-Xcompiler"
      "-fPIC"
@@ -92,7 +77,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
      "-std=c++17"
      "-DFLASHINFER_ENABLE_F16"
      "-DCUTE_USE_PACKED_TUPLE=1"
-@@ -212,57 +207,57 @@
+@@ -203,57 +198,57 @@
      )
  endif()
 
@@ -196,16 +181,16 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 
  # All source files
  # NOTE: Please sort the filenames alphabetically
-@@ -284,8 +279,6 @@
+@@ -274,8 +269,6 @@
+     "csrc/elementwise/pos_enc.cu"
      "csrc/elementwise/topk.cu"
-     "csrc/sgl_diffusion/elementwise/timestep_embedding.cu"
      "csrc/expert_specialization/es_fp8_blockwise.cu"
 -    "csrc/expert_specialization/es_sm100_mxfp8_blockscaled.cu"
 -    "csrc/expert_specialization/es_sm100_mxfp8_blockscaled_group_quant.cu"
 
      "csrc/gemm/awq_kernel.cu"
      "csrc/gemm/bmm_fp8.cu"
-@@ -296,11 +289,6 @@
+@@ -286,11 +279,6 @@
      "csrc/gemm/fp8_blockwise_gemm_kernel.cu"
      "csrc/gemm/fp8_gemm_kernel.cu"
      "csrc/gemm/int8_gemm_kernel.cu"
@@ -217,7 +202,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
      "csrc/gemm/per_tensor_quant_fp8.cu"
      "csrc/gemm/per_token_group_quant_8bit.cu"
      "csrc/gemm/per_token_group_quant_8bit_v2.cu"
-@@ -330,7 +318,6 @@
+@@ -320,7 +308,6 @@
      "csrc/moe/moe_sum_reduce.cu"
      "csrc/moe/moe_topk_softmax_kernels.cu"
      "csrc/moe/moe_topk_sigmoid_kernels.cu"
@@ -225,7 +210,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
      "csrc/moe/fp8_blockwise_moe_kernel.cu"
      "csrc/moe/prepare_moe_input.cu"
 
-@@ -378,20 +365,22 @@
+@@ -365,20 +352,22 @@
      OUTPUT_NAME "common_ops"
      LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/sm90"
  )
@@ -257,7 +242,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 
  find_package(Python3 COMPONENTS Interpreter REQUIRED)
  execute_process(
-@@ -419,7 +408,7 @@
+@@ -406,7 +395,7 @@
  )
 
  target_link_libraries(common_ops_sm90_build PRIVATE ${TORCH_LIBRARIES} c10 cuda cublas cublasLt mscclpp_static)
@@ -266,7 +251,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 
  # sparse flash attention
  target_compile_definitions(common_ops_sm90_build PRIVATE
-@@ -427,17 +416,17 @@
+@@ -414,17 +403,17 @@
      FLASHATTENTION_DISABLE_DROPOUT
      FLASHATTENTION_DISABLE_UNEVEN_K
  )
@@ -290,7 +275,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 
  # ============================ Optional Install: FA3 ============================= #
  # set flash-attention sources file
-@@ -449,7 +438,7 @@
+@@ -436,7 +425,7 @@
          "-O3"
          "-Xcompiler"
          "-fPIC"
@@ -299,7 +284,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
          "-std=c++17"
          "-DCUTE_USE_PACKED_TUPLE=1"
          "-DCUTLASS_ENABLE_TENSOR_CORE_MMA=1"
-@@ -465,10 +454,10 @@
+@@ -454,10 +443,10 @@
      )
 
      if (ENABLE_BELOW_SM90)
@@ -320,8 +305,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/sgl-kernel/include/sgl_kernel_ops.h b/sgl-kernel/include/sgl_kernel_ops.h
---- a/sgl-kernel/include/sgl_kernel_ops.h	(revision 5836324c55ff60c7257085afc84948d37bb144bf)
-+++ b/sgl-kernel/include/sgl_kernel_ops.h	(date 1768804442349)
+--- a/sgl-kernel/include/sgl_kernel_ops.h	(revision e714db81a0e5c730f115ba2ee4302d94e1d51303)
++++ b/sgl-kernel/include/sgl_kernel_ops.h	(date 1772868308292)
 @@ -199,13 +199,6 @@
   * From csrc/gemm
   */
@@ -390,5 +375,5 @@ diff --git a/sgl-kernel/include/sgl_kernel_ops.h b/sgl-kernel/include/sgl_kernel
 -    torch::Tensor& scale_factor);
 -
  /*
-  * From fast-hadamard-transform
+  * From flashmla
   */
