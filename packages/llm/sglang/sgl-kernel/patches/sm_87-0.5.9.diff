@@ -5,7 +5,7 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/sgl-kernel/csrc/common_extension.cc b/sgl-kernel/csrc/common_extension.cc
 --- a/sgl-kernel/csrc/common_extension.cc	(revision e714db81a0e5c730f115ba2ee4302d94e1d51303)
-+++ b/sgl-kernel/csrc/common_extension.cc	(date 1772868308258)
++++ b/sgl-kernel/csrc/common_extension.cc	(date 1772919286349)
 @@ -157,38 +157,11 @@
    m.def("sgl_per_token_quant_fp8(Tensor input, Tensor! output_q, Tensor! output_s) -> ()");
    m.impl("sgl_per_token_quant_fp8", torch::kCUDA, &sgl_per_token_quant_fp8);
@@ -45,6 +45,21 @@ diff --git a/sgl-kernel/csrc/common_extension.cc b/sgl-kernel/csrc/common_extens
 
    m.def("dsv3_router_gemm(Tensor! output, Tensor mat_a, Tensor mat_b) -> ()");
    m.impl("dsv3_router_gemm", torch::kCUDA, &dsv3_router_gemm);
+@@ -583,14 +556,6 @@
+       "stride_a, Tensor stride_b, Tensor stride_d, Tensor problem_sizes, Tensor expert_offsets, Tensor workspace) -> "
+       "()");
+   m.impl("es_fp8_blockwise_scaled_grouped_mm", &es_fp8_blockwise_scaled_grouped_mm);
+-  m.def(
+-      "es_sm100_mxfp8_blockscaled_grouped_mm(Tensor a, Tensor b, Tensor sfa, Tensor sfb, Tensor d, Tensor "
+-      "problem_sizes, Tensor expert_offsets, Tensor blockscale_offsets) -> ()");
+-  m.impl("es_sm100_mxfp8_blockscaled_grouped_mm", &es_sm100_mxfp8_blockscaled_grouped_mm);
+-  m.def(
+-      "es_sm100_mxfp8_blockscaled_grouped_quant(Tensor input, Tensor problem_sizes, Tensor expert_offsets, Tensor "
+-      "blockscale_offsets, Tensor quant_output, Tensor scale_factor) -> () ");
+-  m.impl("es_sm100_mxfp8_blockscaled_grouped_quant", &es_sm100_mxfp8_blockscaled_grouped_quant);
+ }
+
+ REGISTER_EXTENSION(common_ops)
 Index: sgl-kernel/CMakeLists.txt
 IDEA additional info:
 Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
