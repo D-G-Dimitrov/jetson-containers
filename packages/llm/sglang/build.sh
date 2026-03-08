@@ -39,7 +39,7 @@ sed -i \
   -e 's/"nvidia-cutlass-dsl[^"]*"/"nvidia-cutlass-dsl"/' \
   -e "/{ index = \"pypi\", marker = \"platform_machine == 'x86_64'\"}/d" \
   pyproject.toml
-sed -i 's/==/>=/g' pyproject.toml
+#sed -i 's/==/>=/g' pyproject.toml
 
 echo "Patched ${REPO_DIR}/python/pyproject.toml to relax version constraints"
 cat pyproject.toml
@@ -77,9 +77,7 @@ echo "📦 Installing the sglang wheel from ${PIP_WHEEL_DIR}..."
 
 # Now that the version is correct (e.g., 0.5.8), uv will prefer the local 0.5.8
 # over the remote 0.5.7 automatically.
-uv pip install -v \
-  --find-links="${PIP_WHEEL_DIR}" \
-  "sglang[all]"
+uv pip install -v --extra-index-url https://pypi.org/simple /opt/wheels/sglang*.whl
 
 # Your original script installed 'gemlite' here, so we keep it.
 uv pip install -v --extra-index-url https://pypi.org/simple gemlite orjson pybase64
