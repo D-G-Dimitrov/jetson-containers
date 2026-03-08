@@ -37,6 +37,7 @@ sed -i \
   -e 's/"flashinfer_python[^"]*"/"flashinfer_python"/' \
   -e 's/"flashinfer_cubin[^"]*"/"flashinfer_cubin"/' \
   -e 's/"nvidia-cutlass-dsl[^"]*"/"nvidia-cutlass-dsl"/' \
+  -e "/{ index = \"pypi\", marker = \"platform_machine == 'x86_64'\"}/d" \
   pyproject.toml
 
 echo "Patched ${REPO_DIR}/python/pyproject.toml to relax version constraints"
