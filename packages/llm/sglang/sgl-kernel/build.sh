@@ -22,7 +22,7 @@ warn()    { printf "${YELLOW}⚠${RESET} %s\n" "$1"; }
 
 # ===== Deps =====
 apt update && apt install -y ccache
-uv pip install -U compressed-tensors decord2 ninja setuptools wheel numpy scikit-build-core twine
+uv pip install -U --no-build-isolation compressed-tensors decord2 ninja setuptools wheel numpy scikit-build-core twine
 
 REPO_URL="https://github.com/sgl-project/sglang"
 REPO_DIR="/opt/sglang"
@@ -44,7 +44,7 @@ git clone --recursive --depth 1 --branch ${SGL_KERNEL_BRANCH} ${REPO_URL} ${REPO
 }
 
 cd "${REPO_DIR}/sgl-kernel" || exit 1
-sed -i 's/==/>=/g' pyproject.toml
+#sed -i 's/==/>=/g' pyproject.toml
 
 section "Configuring parallelism"
 if [[ -z "${IS_SBSA}" || "${IS_SBSA}" == "1" || "${IS_SBSA,,}" == "true" ]]; then

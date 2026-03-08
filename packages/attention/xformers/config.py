@@ -37,5 +37,6 @@ def xformers(version, requires=None, pytorch=None, default=True):
 
 
 package = [
+    xformers('0.0.33.post2', default=False),
     xformers('0.0.36', default=(CUDA_VERSION >= Version('12.6'))),
 ]
