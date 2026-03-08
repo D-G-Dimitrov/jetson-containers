@@ -88,6 +88,7 @@ cd / || exit 1
 
 # Try uploading; ignore failure
 if [ -x "$(command -v twine)" ]; then
+    export TWINE_PASSWORD="123"
     twine upload --verbose "${PIP_WHEEL_DIR}/sglang"*.whl \
       || echo "Failed to upload wheel to ${TWINE_REPOSITORY_URL:-<unset>}"
 else
