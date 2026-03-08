@@ -32,7 +32,7 @@ def sgl_kernel(version, branch=None, depends=None, default=False):
     return pkg, builder
 
 package = [
-    sgl_kernel('0.3.21', branch='0.5.9', default=False),
+    sgl_kernel('0.3.21', branch='v0.5.9', default=False),
     sgl_kernel('0.6.0', default=True),
     # Latest version from main branch.
     sgl_kernel('latest', branch='main', default=False),
