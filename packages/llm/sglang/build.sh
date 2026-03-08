@@ -65,7 +65,6 @@ echo "🚀 Building sglang wheel ONLY with MAX_JOBS=${CORES}"
 # Use --no-deps so we don't fetch runtime deps yet
 # Use --no-build-isolation because we manually installed build deps (setuptools, wheel, ninja, etc)
 uv build --wheel \
-    --extra-index-url https://pypi.org/simple \
     --no-build-isolation \
     . \
     --out-dir "${PIP_WHEEL_DIR}"
@@ -77,7 +76,6 @@ echo "📦 Installing the sglang wheel from ${PIP_WHEEL_DIR}..."
 # Now that the version is correct (e.g., 0.5.8), uv will prefer the local 0.5.8
 # over the remote 0.5.7 automatically.
 uv pip install -v \
-  --extra-index-url https://pypi.org/simple \
   --find-links="${PIP_WHEEL_DIR}" \
   "sglang[all]"
 
