@@ -31,7 +31,7 @@ cd "${REPO_DIR}" || exit 1
 
 # --- PATCH 1: RELAX PYTORCH VERSION REQUIREMENTS ---
 cd "${REPO_DIR}/python" || exit 1
-sed -i 's/==/>=/g' pyproject.toml
+
 # Patching dependencies to ensure they don't break strict versioning
 sed -i \
   -e 's/"flashinfer_python[^"]*"/"flashinfer_python"/' \
@@ -39,6 +39,7 @@ sed -i \
   -e 's/"nvidia-cutlass-dsl[^"]*"/"nvidia-cutlass-dsl"/' \
   -e "/{ index = \"pypi\", marker = \"platform_machine == 'x86_64'\"}/d" \
   pyproject.toml
+sed -i 's/==/>=/g' pyproject.toml
 
 echo "Patched ${REPO_DIR}/python/pyproject.toml to relax version constraints"
 cat pyproject.toml
