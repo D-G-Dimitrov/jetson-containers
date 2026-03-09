@@ -4,8 +4,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/sgl-kernel/csrc/common_extension.cc b/sgl-kernel/csrc/common_extension.cc
---- a/sgl-kernel/csrc/common_extension.cc	(revision e714db81a0e5c730f115ba2ee4302d94e1d51303)
-+++ b/sgl-kernel/csrc/common_extension.cc	(date 1772919286349)
+--- a/sgl-kernel/csrc/common_extension.cc	(revision bbe9c7eeb520b0a67e92d133dfc137a3688dc7f2)
++++ b/sgl-kernel/csrc/common_extension.cc	(date 1773064329345)
 @@ -157,38 +157,11 @@
    m.def("sgl_per_token_quant_fp8(Tensor input, Tensor! output_q, Tensor! output_s) -> ()");
    m.impl("sgl_per_token_quant_fp8", torch::kCUDA, &sgl_per_token_quant_fp8);
@@ -66,8 +66,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
---- a/sgl-kernel/CMakeLists.txt	(revision e714db81a0e5c730f115ba2ee4302d94e1d51303)
-+++ b/sgl-kernel/CMakeLists.txt	(date 1772868308299)
+--- a/sgl-kernel/CMakeLists.txt	(revision bbe9c7eeb520b0a67e92d133dfc137a3688dc7f2)
++++ b/sgl-kernel/CMakeLists.txt	(date 1773064348346)
 @@ -115,13 +115,8 @@
      set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "ccache")
  endif()
@@ -314,14 +314,22 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
          # SM8X Logic
          file(GLOB FA3_SM8X_GEN_SRCS
              "${repo-flash-attention_SOURCE_DIR}/hopper/instantiations/flash_fwd_hdim*_sm80.cu")
+@@ -529,7 +518,6 @@
+ install(TARGETS spatial_ops LIBRARY DESTINATION sgl_kernel)
+
+ # ============================ Extra Install: FLashMLA ============================= #
+-include(${CMAKE_CURRENT_LIST_DIR}/cmake/flashmla.cmake)
+
+ # ============================ Extra Install: DeepGEMM (JIT) ============================= #
+ # Create a separate library for DeepGEMM's Python API.
 Index: sgl-kernel/include/sgl_kernel_ops.h
 IDEA additional info:
 Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/sgl-kernel/include/sgl_kernel_ops.h b/sgl-kernel/include/sgl_kernel_ops.h
---- a/sgl-kernel/include/sgl_kernel_ops.h	(revision e714db81a0e5c730f115ba2ee4302d94e1d51303)
-+++ b/sgl-kernel/include/sgl_kernel_ops.h	(date 1772868308292)
+--- a/sgl-kernel/include/sgl_kernel_ops.h	(revision bbe9c7eeb520b0a67e92d133dfc137a3688dc7f2)
++++ b/sgl-kernel/include/sgl_kernel_ops.h	(date 1773064329360)
 @@ -199,13 +199,6 @@
   * From csrc/gemm
   */
