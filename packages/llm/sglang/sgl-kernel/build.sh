@@ -22,7 +22,7 @@ warn()    { printf "${YELLOW}⚠${RESET} %s\n" "$1"; }
 
 # ===== Deps =====
 apt update && apt install -y ccache
-uv pip install -U --no-build-isolation compressed-tensors decord2 ninja setuptools wheel numpy scikit-build-core twine
+uv pip install -U -v --no-build-isolation decord2 ninja setuptools wheel numpy scikit-build-core twine
 
 REPO_URL="https://github.com/sgl-project/sglang"
 REPO_DIR="/opt/sglang"
