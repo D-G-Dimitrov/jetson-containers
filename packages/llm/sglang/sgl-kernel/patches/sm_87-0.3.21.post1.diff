@@ -4,8 +4,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/sgl-kernel/csrc/common_extension.cc b/sgl-kernel/csrc/common_extension.cc
---- a/sgl-kernel/csrc/common_extension.cc	(revision 97a2a9be0f45a64f1d2e469456377361329011eb)
-+++ b/sgl-kernel/csrc/common_extension.cc	(date 1772957189384)
+--- a/sgl-kernel/csrc/common_extension.cc	(revision 2ef00383abb8d111faf7a6746dd800de73b36aa2)
++++ b/sgl-kernel/csrc/common_extension.cc	(date 1773037148739)
 @@ -157,15 +157,26 @@
    m.def("sgl_per_token_quant_fp8(Tensor input, Tensor! output_q, Tensor! output_s) -> ()");
    m.impl("sgl_per_token_quant_fp8", torch::kCUDA, &sgl_per_token_quant_fp8);
@@ -119,8 +119,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
---- a/sgl-kernel/CMakeLists.txt	(revision 97a2a9be0f45a64f1d2e469456377361329011eb)
-+++ b/sgl-kernel/CMakeLists.txt	(date 1772957535268)
+--- a/sgl-kernel/CMakeLists.txt	(revision 2ef00383abb8d111faf7a6746dd800de73b36aa2)
++++ b/sgl-kernel/CMakeLists.txt	(date 1773037148780)
 @@ -115,13 +115,8 @@
      set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "ccache")
  endif()
@@ -284,12 +284,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 
      "${repo-flash-attention_SOURCE_DIR}/csrc/flash_attn/src/flash_fwd_sparse_hdim128_bf16_causal_sm80.cu"
      "${repo-flash-attention_SOURCE_DIR}/csrc/flash_attn/src/flash_fwd_sparse_hdim128_bf16_sm80.cu"
-@@ -354,20 +352,22 @@
-     OUTPUT_NAME "common_ops"
-     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/sm90"
- )
-+# Also install to sm100 directory for compatibility with older GPUs
-+install(TARGETS common_ops_sm90_build LIBRARY DESTINATION sgl_kernel/sm100)
+@@ -357,17 +355,17 @@
 
  # =========================== Common SM100+ Build ============================= #
  # Build SM100+ library with precise math (same namespace, different directory)
@@ -316,7 +311,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 
  find_package(Python3 COMPONENTS Interpreter REQUIRED)
  execute_process(
-@@ -395,7 +395,7 @@
+@@ -395,7 +393,7 @@
  )
 
  target_link_libraries(common_ops_sm90_build PRIVATE ${TORCH_LIBRARIES} c10 cuda cublas cublasLt mscclpp_static)
@@ -325,7 +320,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 
  # sparse flash attention
  target_compile_definitions(common_ops_sm90_build PRIVATE
-@@ -403,17 +403,17 @@
+@@ -403,17 +401,17 @@
      FLASHATTENTION_DISABLE_DROPOUT
      FLASHATTENTION_DISABLE_UNEVEN_K
  )
@@ -349,7 +344,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 
  # ============================ Optional Install: FA3 ============================= #
  # set flash-attention sources file
-@@ -425,7 +425,7 @@
+@@ -425,7 +423,7 @@
          "-O3"
          "-Xcompiler"
          "-fPIC"
@@ -358,7 +353,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
          "-std=c++17"
          "-DCUTE_USE_PACKED_TUPLE=1"
          "-DCUTLASS_ENABLE_TENSOR_CORE_MMA=1"
-@@ -443,10 +443,10 @@
+@@ -443,10 +441,10 @@
      )
 
      if (ENABLE_BELOW_SM90)
@@ -379,8 +374,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/sgl-kernel/include/sgl_kernel_ops.h b/sgl-kernel/include/sgl_kernel_ops.h
---- a/sgl-kernel/include/sgl_kernel_ops.h	(revision 97a2a9be0f45a64f1d2e469456377361329011eb)
-+++ b/sgl-kernel/include/sgl_kernel_ops.h	(date 1772957294326)
+--- a/sgl-kernel/include/sgl_kernel_ops.h	(revision 2ef00383abb8d111faf7a6746dd800de73b36aa2)
++++ b/sgl-kernel/include/sgl_kernel_ops.h	(date 1773037148755)
 @@ -252,6 +252,25 @@
  void dsv3_router_gemm(torch::Tensor& output, const torch::Tensor& mat_a, const torch::Tensor& mat_b);
  void dsv3_fused_a_gemm(torch::Tensor& output, torch::Tensor const& mat_a, torch::Tensor const& mat_b);
