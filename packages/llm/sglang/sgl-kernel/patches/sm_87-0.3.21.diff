@@ -92,7 +92,7 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
      "-std=c++17"
      "-DFLASHINFER_ENABLE_F16"
      "-DCUTE_USE_PACKED_TUPLE=1"
-@@ -203,57 +198,57 @@
+@@ -203,58 +198,58 @@
      )
  endif()
 
@@ -178,24 +178,26 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 -    list(APPEND SGL_KERNEL_CUDA_FLAGS
 -        "-gencode=arch=compute_90a,code=sm_90a"
 -    )
+-endif()
+-
+-if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.8" OR SGL_KERNEL_ENABLE_FP4)
+-    list(APPEND SGL_KERNEL_CUDA_FLAGS
+-        "-DENABLE_NVFP4=1"
+-    )
 +    #list(APPEND SGL_KERNEL_CUDA_FLAGS
 +        #"-gencode=arch=compute_90a,code=sm_90a"
 +    #)
  endif()
 
--if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.8" OR SGL_KERNEL_ENABLE_FP4)
--    list(APPEND SGL_KERNEL_CUDA_FLAGS
--        "-DENABLE_NVFP4=1"
--    )
--endif()
 +#if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.8" OR SGL_KERNEL_ENABLE_FP4)
 +#    list(APPEND SGL_KERNEL_CUDA_FLAGS
 +#        "-DENABLE_NVFP4=1"
 +#    )
 +#endif()
-
++
  # All source files
  # NOTE: Please sort the filenames alphabetically
+ set(SOURCES
 @@ -274,8 +269,6 @@
      "csrc/elementwise/pos_enc.cu"
      "csrc/elementwise/topk.cu"
@@ -322,6 +324,51 @@ diff --git a/sgl-kernel/CMakeLists.txt b/sgl-kernel/CMakeLists.txt
 
  # ============================ Extra Install: DeepGEMM (JIT) ============================= #
  # Create a separate library for DeepGEMM's Python API.
+@@ -581,44 +569,3 @@
+         DESTINATION "triton_kernels"
+         PATTERN ".git*" EXCLUDE
+         PATTERN "__pycache__" EXCLUDE)
+-
+-# ============================ Extra Install: FA4 ============================= #
+-# TODO: find a better install condition.
+-if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.8" OR SGL_KERNEL_ENABLE_SM100A)
+-
+-    set(FLASH_ATTN_CUTE_SRC "${repo-flash-attention_SOURCE_DIR}/flash_attn/cute")
+-    set(FLASH_ATTN_CUTE_DST "${CMAKE_CURRENT_BINARY_DIR}/flash_attn_origin/cute")
+-
+-    file(MAKE_DIRECTORY "${FLASH_ATTN_CUTE_DST}")
+-
+-    file(COPY "${FLASH_ATTN_CUTE_SRC}/"
+-         DESTINATION "${FLASH_ATTN_CUTE_DST}"
+-         PATTERN ".git*" EXCLUDE
+-         PATTERN "__pycache__" EXCLUDE)
+-
+-    file(GLOB_RECURSE FLASH_ATTN_CUTE_DST_PY
+-         "${FLASH_ATTN_CUTE_DST}/*.py")
+-
+-    foreach(FILE_PATH IN LISTS FLASH_ATTN_CUTE_DST_PY)
+-        file(READ "${FILE_PATH}" FILE_CONTENT)
+-
+-        set(MODIFIED_CONTENT "${FILE_CONTENT}")
+-
+-        # The main goal is to avoid using "flash_attn" so that other libraries (such as transformers) do not mistakenly assume that "flash_attn" is already installed.
+-
+-        string(REPLACE "flash_attn.cute"
+-                       "flash_attn_origin.cute"
+-                       MODIFIED_CONTENT "${MODIFIED_CONTENT}")
+-
+-        if (NOT FILE_CONTENT STREQUAL MODIFIED_CONTENT)
+-            file(WRITE "${FILE_PATH}" "${MODIFIED_CONTENT}")
+-            message(STATUS "  - [FA4 Patch] Patched: ${FILE_PATH}")
+-        endif()
+-    endforeach()
+-
+-    install(DIRECTORY "${FLASH_ATTN_CUTE_DST}/"
+-            DESTINATION "flash_attn_origin/cute"
+-            PATTERN ".git*" EXCLUDE
+-            PATTERN "__pycache__" EXCLUDE)
+-
+-endif()
 Index: sgl-kernel/include/sgl_kernel_ops.h
 IDEA additional info:
 Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
