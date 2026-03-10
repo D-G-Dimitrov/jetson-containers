@@ -33,6 +33,6 @@ def sglang(version, version_spec=None, requires=None, depends=None, default=Fals
     return pkg, builder
 
 package = [
-    sglang('0.5.9', '0.5.9', depends=['flashinfer', 'sgl-kernel:0.3.21', 'torchao:0.9.0', 'xformers:0.0.33.post2'], default=False),
-    sglang('0.6.0', '0.6.0', depends=['flashinfer', 'sgl-kernel:0.3.21.post1', 'torchao:0.9.0', 'xformers:0.0.33.post2'], default=True), # Compatible with CUDA 13 (Spark and Thor)
+    sglang('0.5.9', '0.5.9', depends=['flashinfer', 'sgl-kernel:0.5.9', 'torchao:0.9.0', 'xformers:0.0.33.post2'], default=False),
+    sglang('0.6.0', '0.6.0', depends=['flashinfer', 'sgl-kernel:0.6.0', 'torchao:0.9.0', 'xformers:0.0.33.post2'], default=True), # Compatible with CUDA 13 (Spark and Thor)
 ]
