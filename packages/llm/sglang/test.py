@@ -1,12 +1,14 @@
 import sglang as sgl
-from sglang.utils import async_stream_and_merge, stream_and_merge
 
 
 def main():
     llm = sgl.Engine(
-        model_path="Qwen/Qwen3-0.6B-FP8",
-        mem_fraction_static=0.5
+        model_path="Qwen/Qwen3-0.6B",
+        dtype="half",
+        mem_fraction_static=0.5,
+        disable_cuda_graph=True
     )
+
     prompts = [
         "Ahoy! How many helicopters can a human eat in one sitting?",
         "Avast! What's the future of AI?",
@@ -20,9 +22,16 @@ def main():
 
     for prompt in prompts:
         print(f"Prompt: {prompt}")
-        merged_output = stream_and_merge(llm, prompt, sampling_params)
-        print("Generated text:", merged_output)
-        print()
+        print("Generated text: ", end="", flush=True)
+
+        # Use stream=True to get a generator that yields chunks instantly
+        response_generator = llm.generate(prompt, sampling_params, stream=True)
+
+        for chunk in response_generator:
+            # Print each token as soon as it is generated
+            print(chunk["text"], end="", flush=True)
+
+        print("\n" + "-" * 40 + "\n")
 
 
 if __name__ == "__main__":
