@@ -6,4 +6,4 @@ if [ "$FORCE_BUILD" == "on" ]; then
 	exit 1
 fi
 
-uv pip install --prerelease allow vllm-omni~=${VLLM_OMNI_VERSION}
+uv pip install -v --no-deps --prerelease allow vllm-omni~=${VLLM_OMNI_VERSION}
