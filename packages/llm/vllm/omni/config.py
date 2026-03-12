@@ -20,7 +20,8 @@ def vllm_omni(version, branch, repo=None, depends=None, requires=None, default=F
     }
 
     builder = pkg.copy()
-
+    builder['name'] = f'{name}:{version}-builder'
+    builder['build_args'] = {**pkg['build_args'], **{'FORCE_BUILD': 'on'}}
     builder['name'] = f'{name}:{version}-builder'
 
     if default:

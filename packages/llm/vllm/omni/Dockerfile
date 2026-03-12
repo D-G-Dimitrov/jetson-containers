@@ -12,7 +12,8 @@ FROM ${BASE_IMAGE}
 ARG VLLM_OMNI_VERSION \
     VLLM_OMNI_REPO \
     VLLM_OMNI_BRANCH \
-    TMP=/tmp/vllm-omni
+    TMP=/tmp/vllm-omni \
+    FORCE_BUILD=off
 
 COPY install.sh build.sh  $TMP/
 
