@@ -42,4 +42,5 @@ package = [
     vllm('0.16.1', depends=['flashinfer'], default=False),
     vllm('0.17.0', branch='v0.17.0', depends=['flashinfer'], default=False),
     vllm('0.17.1', depends=['flashinfer'], default=False),
+    vllm('0.18.0', depends=['flashinfer'], default=True),
 ]
