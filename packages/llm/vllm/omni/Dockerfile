@@ -14,7 +14,7 @@ ARG VLLM_OMNI_VERSION \
     VLLM_OMNI_BRANCH \
     TMP=/tmp/vllm-omni
 
-COPY build.sh  $TMP/
+COPY install.sh build.sh  $TMP/
 
-RUN $TMP/build.sh || exit 1
+RUN $TMP/install.sh || $TMP/build.sh || exit 1
 

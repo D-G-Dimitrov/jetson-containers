@@ -21,3 +21,4 @@ python3 -m setuptools_scm
 uv build --wheel --no-build-isolation -v --out-dir ${REPO_DIR}/wheels .
 uv pip install ${REPO_DIR}/wheels/vllm*.whl
 
+twine upload --verbose ${REPO_DIR}/wheels/vllm*.whl || echo "Failed to upload wheel to ${TWINE_REPOSITORY_URL}"
