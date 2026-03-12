@@ -39,7 +39,7 @@ sed -i \
   -e 's/"nvidia-cutlass-dsl[^"]*"/"nvidia-cutlass-dsl"/' \
   -e "/{ index = \"pypi\", marker = \"platform_machine == 'x86_64'\"}/d" \
   pyproject.toml
-#sed -i 's/==/>=/g' pyproject.toml
+sed -i 's/==/>=/g' pyproject.toml
 
 echo "Patched ${REPO_DIR}/python/pyproject.toml to relax version constraints"
 cat pyproject.toml
