@@ -53,14 +53,14 @@ if hasattr(tokenizer, "apply_chat_template"):
         tokenize=True,
         add_generation_prompt=True,
         return_tensors="pt",
-).to(model.device)
+    ).to(model.device)
 else:
     inputs = tokenizer(
         "Once upon a time, in a land far far away, ",
         return_tensors="pt",
     ).input_ids.to(model.device)
 
-Thread(target=lambda: model.generate(**inputs, max_new_tokens=64, streamer=streamer)).start()
+Thread(target=lambda: model.generate(input_ids=inputs, max_new_tokens=64, streamer=streamer)).start()
 
 for text in streamer:
     print(text, end="", flush=True)
