@@ -32,5 +32,5 @@ def vllm_omni(version, branch, repo=None, depends=None, requires=None, default=F
 
 package = [
     vllm_omni('0.14.0', 'release/v0.14.0',  depends=['vllm'] , repo='vllm-project/vllm-omni',default=False),
-    vllm_omni('0.16.0', 'release/v0.16.0' ,depends=['vllm:0.16.1'] , repo='vllm-project/vllm-omni',default=True)
+    vllm_omni('0.16.0', 'release/v0.16.0' ,depends=['vllm:0.16.0'] , repo='vllm-project/vllm-omni',default=True)
 ]
