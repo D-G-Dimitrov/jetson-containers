@@ -29,9 +29,7 @@ if [[ "$(uname -m)" == "aarch64" && "${TORCH_CUDA_ARCH_LIST}" = "8.7" ]]; then
   # - GIT_REPOSITORY https://github.com/vllm-project/flash-attention.git
   # - GIT_TAG a893712401d70362fbb299cd9c4b3476e8e9ed54
   python3 /tmp/vllm/generate_diff.py                      # (re)generate the .diff files
-  # Removed:
-  # || ! git apply -p1 /tmp/vllm/post_fix.diff
-  if ! git apply -p1 /tmp/vllm/vllm_flash_attn.cmake.diff || ! git apply -p1 /tmp/vllm/CMakeLists.txt.diff   ;then
+  if ! git apply -p1 /tmp/vllm/vllm_flash_attn.cmake.diff || ! git apply -p1 /tmp/vllm/CMakeLists.txt.diff || ! git apply -p1 /tmp/vllm/post_fix.diff     ;then
     echo "ERROR: Patch for SM 8.7 FAILED!" >&2
     exit 1
   else
