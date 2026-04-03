@@ -1,85 +1,7 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
---- a/CMakeLists.txt	(revision 52de019489921b6b6f6a1c3aedf494fe15dea915)
-+++ b/CMakeLists.txt	(date 1775052326495)
-@@ -491,9 +491,9 @@
-   # The nvfp4_scaled_mm_sm120 kernels for Blackwell SM12x require
-   # CUDA 12.8 or later
-   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
--    cuda_archs_loose_intersection(FP4_ARCHS "8.7" "${CUDA_ARCHS}")
-+    cuda_archs_loose_intersection(FP4_ARCHS "12.0f" "${CUDA_ARCHS}")
-   else()
--    cuda_archs_loose_intersection(FP4_ARCHS "8.7" "${CUDA_ARCHS}")
-+    cuda_archs_loose_intersection(FP4_ARCHS "12.0a;12.1a" "${CUDA_ARCHS}")
-   endif()
-   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND FP4_ARCHS)
-     set(SRCS
-@@ -517,9 +517,9 @@
-
-   # FP4 Archs and flags
-   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
--    cuda_archs_loose_intersection(FP4_ARCHS "8.7" "${CUDA_ARCHS}")
-+    cuda_archs_loose_intersection(FP4_ARCHS "10.0f;11.0f" "${CUDA_ARCHS}")
-   else()
--    cuda_archs_loose_intersection(FP4_ARCHS "8.7" "${CUDA_ARCHS}")
-+    cuda_archs_loose_intersection(FP4_ARCHS "10.0a;10.1a;10.3a" "${CUDA_ARCHS}")
-   endif()
-   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND FP4_ARCHS)
-     set(SRCS
-@@ -543,9 +543,9 @@
-
-   # CUTLASS MLA Archs and flags
-   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
--    cuda_archs_loose_intersection(MLA_ARCHS "8.7" "${CUDA_ARCHS}")
-+    cuda_archs_loose_intersection(MLA_ARCHS "10.0f;11.0f;12.0f" "${CUDA_ARCHS}")
-   else()
--    cuda_archs_loose_intersection(MLA_ARCHS "8.7" "${CUDA_ARCHS}")
-+    cuda_archs_loose_intersection(MLA_ARCHS "10.0a;10.1a;10.3a;12.0a;12.1a" "${CUDA_ARCHS}")
-   endif()
-   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND MLA_ARCHS)
-     set(SRCS
-@@ -567,9 +567,9 @@
-
-   # Expert-specialization MXFP8 blockscaled grouped kernels (SM100+).
-   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
--    cuda_archs_loose_intersection(ES_MXFP8_GROUPED_MM_ARCHS "8.7" "${CUDA_ARCHS}")
-+    cuda_archs_loose_intersection(ES_MXFP8_GROUPED_MM_ARCHS "10.0f;11.0f" "${CUDA_ARCHS}")
-   else()
--    cuda_archs_loose_intersection(ES_MXFP8_GROUPED_MM_ARCHS "8.7" "${CUDA_ARCHS}")
-+    cuda_archs_loose_intersection(ES_MXFP8_GROUPED_MM_ARCHS "10.0a;10.1a;10.3a" "${CUDA_ARCHS}")
-   endif()
-   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND ES_MXFP8_GROUPED_MM_ARCHS)
-     set(SRCS
-@@ -594,9 +594,9 @@
-
-   # DeepSeek V3 fused A GEMM kernel (requires SM 9.0+, Hopper and later)
-   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
--    cuda_archs_loose_intersection(DSV3_FUSED_A_GEMM_ARCHS "8.7" "${CUDA_ARCHS}")
-+    cuda_archs_loose_intersection(DSV3_FUSED_A_GEMM_ARCHS "9.0a;10.0f;11.0f" "${CUDA_ARCHS}")
-   else()
--    cuda_archs_loose_intersection(DSV3_FUSED_A_GEMM_ARCHS "8.7" "${CUDA_ARCHS}")
-+    cuda_archs_loose_intersection(DSV3_FUSED_A_GEMM_ARCHS "9.0a;10.0a;10.1a;10.3a" "${CUDA_ARCHS}")
-   endif()
-   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.0 AND DSV3_FUSED_A_GEMM_ARCHS)
-     set(DSV3_FUSED_A_GEMM_SRC "csrc/dsv3_fused_a_gemm.cu")
-@@ -615,7 +615,7 @@
-
-   # The machete kernels only work on hopper and require CUDA 12.0 or later.
-   # Only build Machete kernels if we are building for something compatible with sm90a
--  cuda_archs_loose_intersection(MACHETE_ARCHS "8.7" "${CUDA_ARCHS}")
-+  cuda_archs_loose_intersection(MACHETE_ARCHS "9.0a" "${CUDA_ARCHS}")
-   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.0 AND MACHETE_ARCHS)
-     #
-     # For the Machete kernels we automatically generate sources for various
-@@ -681,7 +681,7 @@
-   endif()
-
-   # Only build W4A8 kernels if we are building for something compatible with sm90a
--  cuda_archs_loose_intersection(W4A8_ARCHS "8.7" "${CUDA_ARCHS}")
-+  cuda_archs_loose_intersection(W4A8_ARCHS "9.0a" "${CUDA_ARCHS}")
-   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.0 AND W4A8_ARCHS)
-     set(SRCS
-        "csrc/quantization/cutlass_w4a8/w4a8_mm_entry.cu"
-@@ -780,7 +780,7 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt	(date 1775206465970)
+@@ -493,7 +493,7 @@
    set(SCALED_MM_3X_ARCHS)
    # The cutlass_scaled_mm kernels for Hopper (c3x, i.e. CUTLASS 3.x) require
    # CUDA 12.0 or later
@@ -87,8 +9,8 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
 +  cuda_archs_loose_intersection(SCALED_MM_ARCHS "9.0a;" "${CUDA_ARCHS}")
    if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.0 AND SCALED_MM_ARCHS)
      set(SRCS
-        "csrc/libtorch_stable/quantization/w8a8/cutlass/scaled_mm_c3x_sm90.cu"
-@@ -812,9 +812,9 @@
+        "csrc/quantization/w8a8/cutlass/scaled_mm_c3x_sm90.cu"
+@@ -525,9 +525,9 @@
    # The cutlass_scaled_mm kernels for Blackwell SM12x (c3x, i.e. CUTLASS 3.x) require
    # CUDA 12.8 or later
    if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
@@ -100,7 +22,7 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
    endif()
    if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND SCALED_MM_ARCHS)
      set(SRCS
-@@ -846,9 +846,9 @@
+@@ -559,9 +559,9 @@
    # The cutlass_scaled_mm kernels for Blackwell SM100 (c3x, i.e. CUTLASS 3.x)
    # require CUDA 12.8 or later
    if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
@@ -112,16 +34,52 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
    endif()
    if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND SCALED_MM_ARCHS)
      set(SRCS
-@@ -908,7 +908,7 @@
+@@ -617,9 +617,9 @@
+   # The nvfp4_scaled_mm_sm120 kernels for Blackwell SM12x require
+   # CUDA 12.8 or later
+   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
+-    cuda_archs_loose_intersection(FP4_ARCHS "8.7" "${CUDA_ARCHS}")
++    cuda_archs_loose_intersection(FP4_ARCHS "12.0f" "${CUDA_ARCHS}")
+   else()
+-    cuda_archs_loose_intersection(FP4_ARCHS "8.7" "${CUDA_ARCHS}")
++    cuda_archs_loose_intersection(FP4_ARCHS "12.0a;12.1a" "${CUDA_ARCHS}")
+   endif()
+   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND FP4_ARCHS)
+     set(SRCS
+@@ -643,9 +643,9 @@
+
+   # FP4 Archs and flags
+   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
+-    cuda_archs_loose_intersection(FP4_ARCHS "8.7" "${CUDA_ARCHS}")
++    cuda_archs_loose_intersection(FP4_ARCHS "10.0f;11.0f" "${CUDA_ARCHS}")
+   else()
+-    cuda_archs_loose_intersection(FP4_ARCHS "8.7" "${CUDA_ARCHS}")
++    cuda_archs_loose_intersection(FP4_ARCHS "10.0a;10.1a;10.3a" "${CUDA_ARCHS}")
+   endif()
+   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND FP4_ARCHS)
+     set(SRCS
+@@ -669,9 +669,9 @@
+
+   # CUTLASS MLA Archs and flags
+   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
+-    cuda_archs_loose_intersection(MLA_ARCHS "8.7" "${CUDA_ARCHS}")
++    cuda_archs_loose_intersection(MLA_ARCHS "10.0f;11.0f;12.0f" "${CUDA_ARCHS}")
+   else()
+-    cuda_archs_loose_intersection(MLA_ARCHS "8.7" "${CUDA_ARCHS}")
++    cuda_archs_loose_intersection(MLA_ARCHS "10.0a;10.1a;10.3a;12.0a;12.1a" "${CUDA_ARCHS}")
+   endif()
+   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND MLA_ARCHS)
+     set(SRCS
+@@ -696,7 +696,7 @@
    # The MoE kernel cutlass_moe_mm requires CUDA 12.3 or later (and ONLY works
    # on Hopper). get_cutlass_(batched_)moe_mm_data should only be compiled
    # if it's possible to compile MoE kernels that use its output.
 -  cuda_archs_loose_intersection(SCALED_MM_ARCHS "8.7" "${CUDA_ARCHS}")
 +  cuda_archs_loose_intersection(SCALED_MM_ARCHS "9.0a" "${CUDA_ARCHS}")
    if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.3 AND SCALED_MM_ARCHS)
-     set(SRCS "csrc/libtorch_stable/quantization/w8a8/cutlass/moe/grouped_mm_c3x_sm90.cu")
+     set(SRCS "csrc/quantization/w8a8/cutlass/moe/grouped_mm_c3x_sm90.cu")
      set_gencode_flags_for_srcs(
-@@ -929,9 +929,9 @@
+@@ -717,9 +717,9 @@
    endif()
 
    if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
@@ -132,8 +90,32 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
 +    cuda_archs_loose_intersection(SCALED_MM_ARCHS "10.0a;10.1a;10.3a" "${CUDA_ARCHS}")
    endif()
    if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND SCALED_MM_ARCHS)
-     set(SRCS "csrc/libtorch_stable/quantization/w8a8/cutlass/moe/grouped_mm_c3x_sm100.cu")
-@@ -954,9 +954,9 @@
+     set(SRCS "csrc/quantization/w8a8/cutlass/moe/grouped_mm_c3x_sm100.cu")
+@@ -742,9 +742,9 @@
+
+   # Expert-specialization MXFP8 blockscaled grouped kernels (SM100+).
+   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
+-    cuda_archs_loose_intersection(ES_MXFP8_GROUPED_MM_ARCHS "8.7" "${CUDA_ARCHS}")
++    cuda_archs_loose_intersection(ES_MXFP8_GROUPED_MM_ARCHS "10.0f;11.0f" "${CUDA_ARCHS}")
+   else()
+-    cuda_archs_loose_intersection(ES_MXFP8_GROUPED_MM_ARCHS "8.7" "${CUDA_ARCHS}")
++    cuda_archs_loose_intersection(ES_MXFP8_GROUPED_MM_ARCHS "10.0a;10.1a;10.3a" "${CUDA_ARCHS}")
+   endif()
+   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND ES_MXFP8_GROUPED_MM_ARCHS)
+     set(SRCS
+@@ -769,9 +769,9 @@
+
+   # DeepSeek V3 fused A GEMM kernel (requires SM 9.0+, Hopper and later)
+   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
+-    cuda_archs_loose_intersection(DSV3_FUSED_A_GEMM_ARCHS "8.7" "${CUDA_ARCHS}")
++    cuda_archs_loose_intersection(DSV3_FUSED_A_GEMM_ARCHS "9.0a;10.0f;11.0f" "${CUDA_ARCHS}")
+   else()
+-    cuda_archs_loose_intersection(DSV3_FUSED_A_GEMM_ARCHS "8.7" "${CUDA_ARCHS}")
++    cuda_archs_loose_intersection(DSV3_FUSED_A_GEMM_ARCHS "9.0a;10.0a;10.1a;10.3a" "${CUDA_ARCHS}")
+   endif()
+   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.0 AND DSV3_FUSED_A_GEMM_ARCHS)
+     set(DSV3_FUSED_A_GEMM_SRC "csrc/dsv3_fused_a_gemm.cu")
+@@ -787,9 +787,9 @@
 
    # moe_data.cu is used by all CUTLASS MoE kernels.
    if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
@@ -144,8 +126,38 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
 +    cuda_archs_loose_intersection(CUTLASS_MOE_DATA_ARCHS "9.0a;10.0a;10.1a;10.3a;12.0a;12.1a" "${CUDA_ARCHS}")
    endif()
    if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.3 AND CUTLASS_MOE_DATA_ARCHS)
-     set(SRCS "csrc/libtorch_stable/quantization/w8a8/cutlass/moe/moe_data.cu")
-@@ -1150,9 +1150,9 @@
+     set(SRCS "csrc/quantization/w8a8/cutlass/moe/moe_data.cu")
+@@ -810,9 +810,9 @@
+   endif()
+
+   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
+-    cuda_archs_loose_intersection(SCALED_MM_ARCHS "8.7" "${CUDA_ARCHS}")
++    cuda_archs_loose_intersection(SCALED_MM_ARCHS "10.0f;11.0f" "${CUDA_ARCHS}")
+   else()
+-    cuda_archs_loose_intersection(SCALED_MM_ARCHS "8.7" "${CUDA_ARCHS}")
++    cuda_archs_loose_intersection(SCALED_MM_ARCHS "10.0a;10.1a;10.3a" "${CUDA_ARCHS}")
+   endif()
+
+   #
+@@ -820,7 +820,7 @@
+
+   # The machete kernels only work on hopper and require CUDA 12.0 or later.
+   # Only build Machete kernels if we are building for something compatible with sm90a
+-  cuda_archs_loose_intersection(MACHETE_ARCHS "8.7" "${CUDA_ARCHS}")
++  cuda_archs_loose_intersection(MACHETE_ARCHS "9.0a" "${CUDA_ARCHS}")
+   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.0 AND MACHETE_ARCHS)
+     #
+     # For the Machete kernels we automatically generate sources for various
+@@ -886,7 +886,7 @@
+   endif()
+
+   # Only build W4A8 kernels if we are building for something compatible with sm90a
+-  cuda_archs_loose_intersection(W4A8_ARCHS "8.7" "${CUDA_ARCHS}")
++  cuda_archs_loose_intersection(W4A8_ARCHS "9.0a" "${CUDA_ARCHS}")
+   if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.0 AND W4A8_ARCHS)
+     set(SRCS
+        "csrc/quantization/cutlass_w4a8/w4a8_mm_entry.cu"
+@@ -1146,9 +1146,9 @@
 
    # DeepSeek V3 router GEMM kernel - requires SM90+
    if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
