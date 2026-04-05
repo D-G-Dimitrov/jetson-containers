@@ -111,7 +111,7 @@ def cuda_stack_args():
 
         # Additional libraries
         'CUDSS_VERSION': '0.7.1',
-        'CUSPARSELT_VERSION': '0.9.0',
+        'CUSPARSELT_VERSION': '0.8.1',
         'CUTENSOR_VERSION': '2.6.0',
         'GDRCOPY_VERSION': '2.5.2',
         'NVPL_VERSION': '25.11',
