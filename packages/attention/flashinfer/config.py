@@ -32,6 +32,7 @@ def flash_infer(version, version_spec=None, requires=None, default=False):
 
 
 package = [
+    flash_infer('0.6.6', '0.6.6', default=False),
     flash_infer('0.6.7', '0.6.7', default=False),
     flash_infer('0.6.8', '0.6.8', default=(CUDA_VERSION >= Version('12.6'))), # Compatible with Spark and Thor
     # flash_infer('latest', 'main', default=(CUDA_VERSION >= Version('12.6'))), # Thor compatibility
