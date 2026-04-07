@@ -35,6 +35,10 @@ export DG_JIT_USE_NVRTC=1 # DeepGEMM now supports NVRTC with up to 10x compilati
 
 python3 use_existing_torch.py || echo "skipping vllm/use_existing_torch.py"
 
+if [ $VLLM_VERSION == "0.19.0" ]; then
+  uv pip install "git+https://github.com/thuml/depyf.git@v0.20.0"
+fi
+
 uv pip install -r requirements/build.txt -v
 python3 -m setuptools_scm
 
