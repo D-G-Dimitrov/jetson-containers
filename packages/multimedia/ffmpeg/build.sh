@@ -78,18 +78,7 @@ cd nv-codec-headers && make PREFIX="$DIST" install
 
 export PATH=/usr/local/cuda/bin:${PATH}
 NVCCFLAGS="\
--gencode arch=compute_75,code=sm_75 \
--gencode arch=compute_80,code=sm_80 \
--gencode arch=compute_86,code=sm_86 \
 -gencode arch=compute_87,code=sm_87 \
--gencode arch=compute_88,code=sm_88 \
--gencode arch=compute_89,code=sm_89 \
--gencode arch=compute_90,code=sm_90 \
--gencode arch=compute_100,code=sm_100 \
--gencode arch=compute_103,code=sm_103 \
--gencode arch=compute_110,code=sm_110 \
--gencode arch=compute_120,code=sm_120 \
--gencode arch=compute_121,code=sm_121 \
 -std=c++17 -O3"
 
 # Build FFmpeg
@@ -115,7 +104,6 @@ cd $SOURCE
   --enable-libass \
   --enable-libaom \
   --enable-libsvtav1 \
-  --enable-libdav1d \
   --extra-cflags=-I/usr/local/cuda/include \
   --extra-ldflags=-L/usr/local/cuda/lib64 \
   --enable-nvenc \
