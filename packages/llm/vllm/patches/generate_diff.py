@@ -414,7 +414,15 @@ def modify_fa_cmake_fa3_orin(content: str) -> str:
             content,
         )
 
-    # ── 2. Force FA3 arch intersection to the target arch ─────────────────
+    # ── 2. Comment out FLASHATTENTION_DISABLE_SM8x ──────────────────────
+    content = re.sub(
+        r'^(\s*)FLASHATTENTION_DISABLE_SM8x\b',
+        r'\1# FLASHATTENTION_DISABLE_SM8x',
+        content,
+        flags=re.MULTILINE,
+    )
+
+    # ── 3. Force FA3 arch intersection to the target arch ─────────────────
     # The upstream CMake guards FA3 at "9.0a" (Hopper); override to target
     # so that Orin (sm87) is included.
     content = re.sub(
