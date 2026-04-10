@@ -352,13 +352,13 @@ def _extract_fa_git_tag(cmake_path):
     )
 
 
-def _fetch_fa_cmake(repo_url, git_tag):
-    """Download flash-attention CMakeLists.txt from GitHub."""
+def _fetch_fa_file(repo_url, git_tag, file_path="CMakeLists.txt"):
+    """Download a file from the flash-attention repo on GitHub."""
     raw = repo_url.replace("github.com", "raw.githubusercontent.com")
     if raw.endswith(".git"):
         raw = raw[:-4]
-    url = f"{raw}/{git_tag}/CMakeLists.txt"
-    print(f"Fetching flash-attention CMakeLists.txt from {url}")
+    url = f"{raw}/{git_tag}/{file_path}"
+    print(f"Fetching flash-attention {file_path} from {url}")
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "jetson-containers"})
         with urllib.request.urlopen(req, timeout=30) as resp:
@@ -379,10 +379,10 @@ def _fetch_fa_cmake(repo_url, git_tag):
             check=True, capture_output=True, timeout=60,
         )
         subprocess.run(
-            ["git", "-C", tmp, "checkout", git_tag, "--", "CMakeLists.txt"],
+            ["git", "-C", tmp, "checkout", git_tag, "--", file_path],
             check=True, capture_output=True, timeout=30,
         )
-        return _read(os.path.join(tmp, "CMakeLists.txt"))
+        return _read(os.path.join(tmp, file_path))
     except Exception as exc:
         print(f"  Warning: git fallback also failed ({exc})")
     return None
@@ -390,11 +390,12 @@ def _fetch_fa_cmake(repo_url, git_tag):
 
 def modify_fa_cmake_fa3_orin(content: str) -> str:
     """
-    Enable FA3 for Orin (sm87) in the vendored flash-attention CMakeLists.txt.
+    For Orin (sm87): enable FA3 alongside FA2.
 
-    * Flips ``FA3_ENABLED`` from OFF to ON (or inserts it after FA2_ENABLED).
-    * Forces the FA3 ``cuda_archs_loose_intersection`` call to use the same
-      target arch as FA2 (normally gated at 9.0a / Hopper-only).
+    * Flips ``FA3_ENABLED`` OFF → ON (or inserts it after FA2_ENABLED).
+    * Forces the FA3 ``cuda_archs_loose_intersection`` call to use the target
+      arch (normally gated at 9.0a / Hopper-only).
+    * FA2 remains enabled (unchanged).
     """
     cuda_val = _cuda_arch_cmake_value()
 
@@ -425,8 +426,26 @@ def modify_fa_cmake_fa3_orin(content: str) -> str:
     return content
 
 
+def modify_fa_interface_fa3_orin(content: str) -> str:
+    """Override ``_is_fa3_supported`` to also allow sm87 (Orin)."""
+    content = re.sub(
+        r'(def _is_fa3_supported\(device\s*=\s*None\).*?)'
+        r'if torch\.cuda\.get_device_capability\(device\)\[0\] < 9\s*\\\s*\n'
+        r'\s*or torch\.cuda\.get_device_capability\(device\)\[0\] >= 10:\s*\n'
+        r'\s*return False,\s*\\\s*\n'
+        r'\s*"FA3 is only supported on devices with compute capability 9\.0"',
+        r'\1cap = torch.cuda.get_device_capability(device)\n'
+        r'    if not ((cap[0] == 8 and cap[1] >= 7) or cap[0] == 9):\n'
+        r'        return False, \\\n'
+        r'            "FA3 is only supported on devices with compute capability >= 8.7 and < 10.0"',
+        content,
+        flags=re.DOTALL,
+    )
+    return content
+
+
 def generate_fa_diff(base_dir, diff_dir):
-    """Produce ``fa.diff`` for the vendored flash-attention CMakeLists.txt."""
+    """Produce ``fa.diff`` for the vendored flash-attention project."""
     cmake_path = os.path.join(
         base_dir, "cmake", "external_projects", "vllm_flash_attn.cmake")
     repo_url, git_tag = _extract_fa_git_tag(cmake_path)
@@ -435,23 +454,44 @@ def generate_fa_diff(base_dir, diff_dir):
         print("Warning: could not determine flash-attention repo/tag – skipping fa.diff")
         return False
 
-    original = _fetch_fa_cmake(repo_url, git_tag)
-    if not original:
-        print("Warning: could not fetch flash-attention source – skipping fa.diff")
-        return False
+    is_orin = _cuda_arch_cmake_value() == "8.7"
 
-    modified = modify_cmake_archs(original)
-    # Only apply the Orin-specific FA3 patch.
-    if _cuda_arch_cmake_value() == "8.7":
-        modified = modify_fa_cmake_fa3_orin(modified)
-    diff_text = _unified_diff(original, modified, "CMakeLists.txt")
-    if not diff_text:
-        print("flash-attention CMakeLists.txt: no changes needed")
+    # ── Files to patch ───────────────────────────────────────────────────
+    fa_files = [
+        ("CMakeLists.txt", [modify_cmake_archs]
+         + ([modify_fa_cmake_fa3_orin] if is_orin else [])),
+    ]
+
+    # ── flash_attn_interface.py (sm87 only) ──────────────────────────────
+    if is_orin:
+        fa_files.append((
+            "vllm_flash_attn/flash_attn_interface.py",
+            [modify_fa_interface_fa3_orin],
+        ))
+
+    diffs = []
+    for rel_path, modifiers in fa_files:
+        original = _fetch_fa_file(repo_url, git_tag, rel_path)
+        if not original:
+            print(f"Warning: could not fetch flash-attention {rel_path} – skipping")
+            continue
+        modified = original
+        for mod_fn in modifiers:
+            modified = mod_fn(modified)
+        d = _unified_diff(original, modified, rel_path)
+        if d:
+            diffs.append(d)
+            print(f"fa.diff: patch generated for {rel_path}")
+        else:
+            print(f"fa.diff: no changes for {rel_path}")
+
+    if not diffs:
+        print("flash-attention: no changes needed")
         return True
 
     out_path = os.path.join(diff_dir, "fa.diff")
     with open(out_path, "w") as fh:
-        fh.write(diff_text + "\n")
+        fh.write("\n".join(diffs) + "\n")
     print(f"Generated {out_path}")
     return True
 
