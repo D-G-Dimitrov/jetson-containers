@@ -427,19 +427,33 @@ def modify_fa_cmake_fa3_orin(content: str) -> str:
 
 
 def modify_fa_interface_fa3_orin(content: str) -> str:
-    """Override ``_is_fa3_supported`` to also allow sm87 (Orin)."""
+    """
+    Patch ``_is_fa3_supported`` in vLLM's vendored flash_attn_interface.py
+    to accept sm80+ (Orin sm87) instead of only sm90.
+    """
     content = re.sub(
-        r'(def _is_fa3_supported\(device\s*=\s*None\).*?)'
-        r'if torch\.cuda\.get_device_capability\(device\)\[0\] < 9\s*\\\s*\n'
-        r'\s*or torch\.cuda\.get_device_capability\(device\)\[0\] >= 10:\s*\n'
-        r'\s*return False,\s*\\\s*\n'
-        r'\s*"FA3 is only supported on devices with compute capability 9\.0"',
-        r'\1cap = torch.cuda.get_device_capability(device)\n'
-        r'    if not ((cap[0] == 8 and cap[1] >= 7) or cap[0] == 9):\n'
-        r'        return False, \\\n'
-        r'            "FA3 is only supported on devices with compute capability >= 8.7 and < 10.0"',
+        r'if not current_platform\.is_device_capability_family\(90\):\s*\n'
+        r'(\s*)return False,\s*"FA3 is only supported on devices with compute capability 9\.x"',
+        r'if not current_platform.has_device_capability(80):\n'
+        r'\1return False, "FA3 is only supported on devices with compute capability >= 8"',
         content,
-        flags=re.DOTALL,
+    )
+    return content
+
+
+def modify_fa_utils_fa3_orin(content: str) -> str:
+    """
+    Patch ``fa_utils.py`` to prefer FA3 for SM8x–SM9x (not just SM90).
+    """
+    content = re.sub(
+        r'if device_capability\.major == 9 and is_fa_version_supported\(3\):\s*\n'
+        r'(\s*)# Hopper \(SM90\): prefer FA3',
+        'if (\n'
+        '            8 <= device_capability.major < 10\n'
+        '            and is_fa_version_supported(3)\n'
+        '        ):\n'
+        '\\1# Ampere/Ada/Hopper (SM8x\u2013SM9x): prefer FA3',
+        content,
     )
     return content
 
@@ -461,13 +475,6 @@ def generate_fa_diff(base_dir, diff_dir):
         ("CMakeLists.txt", [modify_cmake_archs]
          + ([modify_fa_cmake_fa3_orin] if is_orin else [])),
     ]
-
-    # ── flash_attn_interface.py (sm87 only) ──────────────────────────────
-    if is_orin:
-        fa_files.append((
-            "vllm_flash_attn/flash_attn_interface.py",
-            [modify_fa_interface_fa3_orin],
-        ))
 
     diffs = []
     for rel_path, modifiers in fa_files:
@@ -516,6 +523,8 @@ def main():
     os.makedirs(out, exist_ok=True)
 
     # ── vLLM source patches ──────────────────────────────────────────────
+    is_orin = _cuda_arch_cmake_value() == "8.7"
+
     targets = [
         ("CMakeLists.txt", modify_cmake_archs),
         (os.path.join("cmake", "external_projects", "vllm_flash_attn.cmake"),
@@ -525,6 +534,17 @@ def main():
         (os.path.join("vllm", "utils", "__init__.py"),
          modify_vllm_utils_init),
     ]
+
+    # FA3-on-Orin: patch vLLM runtime to accept sm87 for FA3
+    if is_orin:
+        targets.append((
+            os.path.join("vllm", "vllm_flash_attn", "flash_attn_interface.py"),
+            modify_fa_interface_fa3_orin,
+        ))
+        targets.append((
+            os.path.join("vllm", "v1", "attention", "backends", "fa_utils.py"),
+            modify_fa_utils_fa3_orin,
+        ))
 
     diffs = []
     for rel_path, mod_fn in targets:
