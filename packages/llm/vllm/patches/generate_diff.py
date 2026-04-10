@@ -443,8 +443,10 @@ def modify_fa_interface_fa3_orin(content: str) -> str:
 
 def modify_fa_utils_fa3_orin(content: str) -> str:
     """
-    Patch ``fa_utils.py`` to prefer FA3 for SM8x–SM9x (not just SM90).
+    Patch ``fa_utils.py`` to prefer FA3 for SM8x–SM9x (not just SM90)
+    and widen all ``is_device_capability_family(90)`` checks to ``has_device_capability(80)``.
     """
+    # 1. FA version selection: SM90-only → SM8x–SM9x
     content = re.sub(
         r'if device_capability\.major == 9 and is_fa_version_supported\(3\):\s*\n'
         r'(\s*)# Hopper \(SM90\): prefer FA3',
@@ -453,6 +455,38 @@ def modify_fa_utils_fa3_orin(content: str) -> str:
         '            and is_fa_version_supported(3)\n'
         '        ):\n'
         '\\1# Ampere/Ada/Hopper (SM8x\u2013SM9x): prefer FA3',
+        content,
+    )
+    # 2. All remaining is_device_capability_family(90) → has_device_capability(80)
+    content = content.replace(
+        'current_platform.is_device_capability_family(90)',
+        'current_platform.has_device_capability(80)',
+    )
+    return content
+
+
+def modify_mla_attention_fa3_orin(content: str) -> str:
+    """
+    Patch ``mla_attention.py`` to allow FA3 diff-headdim on SM80+ (not just SM90).
+    """
+    content = content.replace(
+        '# FA3 on Hopper (SM90) and FA4 natively handle diff headdims.',
+        '# FA3 on SM80+ and FA4 natively handle diff headdims.',
+    )
+    content = content.replace(
+        'and device_capability[0] == 9',
+        'and device_capability[0] >= 8',
+    )
+    return content
+
+
+def modify_flashattn_mla_fa3_orin(content: str) -> str:
+    """
+    Patch ``flashattn_mla.py`` to support compute capability >= 8 (not just == 9).
+    """
+    content = re.sub(
+        r'return capability\.major == 9',
+        'return capability.major >= 8',
         content,
     )
     return content
@@ -544,6 +578,16 @@ def main():
         targets.append((
             os.path.join("vllm", "v1", "attention", "backends", "fa_utils.py"),
             modify_fa_utils_fa3_orin,
+        ))
+        targets.append((
+            os.path.join("vllm", "model_executor", "layers", "attention",
+                         "mla_attention.py"),
+            modify_mla_attention_fa3_orin,
+        ))
+        targets.append((
+            os.path.join("vllm", "v1", "attention", "backends", "mla",
+                         "flashattn_mla.py"),
+            modify_flashattn_mla_fa3_orin,
         ))
 
     diffs = []
