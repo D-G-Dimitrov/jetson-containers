@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -ex
 
+rm -rf /etc/apt/sources.list.d/nvshmem-local-*
+
 apt-get update -y
 apt-get install -y --no-install-recommends \
 	libnuma-dev \
