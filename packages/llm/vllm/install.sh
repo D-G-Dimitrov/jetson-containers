@@ -9,7 +9,8 @@ apt-get install -y --no-install-recommends \
 	libprotobuf-dev \
 	libsm6 \
 	libxext6 \
-	libgl1
+	libgl1 \
+	ccache
 
 rm -rf /var/lib/apt/lists/*
 apt-get clean
