@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -ex
 
-rm -rf /etc/apt/sources.list.d/nvshmem-local-*
 uv pip uninstall vllm && rm -rf /opt/vllm
 
 uv pip install pre-commit nanobind==2.5.0
