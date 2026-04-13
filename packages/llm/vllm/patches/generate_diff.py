@@ -352,13 +352,13 @@ def _extract_fa_git_tag(cmake_path):
     )
 
 
-def _fetch_fa_file(repo_url, git_tag, file_path="CMakeLists.txt"):
-    """Download a file from the flash-attention repo on GitHub."""
+def _fetch_fa_cmake(repo_url, git_tag):
+    """Download flash-attention CMakeLists.txt from GitHub."""
     raw = repo_url.replace("github.com", "raw.githubusercontent.com")
     if raw.endswith(".git"):
         raw = raw[:-4]
-    url = f"{raw}/{git_tag}/{file_path}"
-    print(f"Fetching flash-attention {file_path} from {url}")
+    url = f"{raw}/{git_tag}/CMakeLists.txt"
+    print(f"Fetching flash-attention CMakeLists.txt from {url}")
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "jetson-containers"})
         with urllib.request.urlopen(req, timeout=30) as resp:
@@ -379,87 +379,17 @@ def _fetch_fa_file(repo_url, git_tag, file_path="CMakeLists.txt"):
             check=True, capture_output=True, timeout=60,
         )
         subprocess.run(
-            ["git", "-C", tmp, "checkout", git_tag, "--", file_path],
+            ["git", "-C", tmp, "checkout", git_tag, "--", "CMakeLists.txt"],
             check=True, capture_output=True, timeout=30,
         )
-        return _read(os.path.join(tmp, file_path))
+        return _read(os.path.join(tmp, "CMakeLists.txt"))
     except Exception as exc:
         print(f"  Warning: git fallback also failed ({exc})")
     return None
 
 
-def modify_fa_cmake_fa3_orin(content: str) -> str:
-    """
-    For Orin (sm87): enable FA3 alongside FA2.
-
-    * Flips ``FA3_ENABLED`` OFF → ON (or inserts it after FA2_ENABLED).
-    * Forces the FA3 ``cuda_archs_loose_intersection`` call to use the target
-      arch (normally gated at 9.0a / Hopper-only).
-    * FA2 remains enabled (unchanged).
-    """
-    cuda_val = _cuda_arch_cmake_value()
-
-    # ── 1. Set FA3_ENABLED ON ────────────────────────────────────────────
-    if re.search(r'\bset\s*\(\s*FA3_ENABLED\s+OFF\s*\)', content):
-        content = re.sub(
-            r'\bset\s*\(\s*FA3_ENABLED\s+OFF\s*\)',
-            'set(FA3_ENABLED ON)',
-            content,
-        )
-    elif not re.search(r'\bset\s*\(\s*FA3_ENABLED\s+ON\s*\)', content):
-        # No FA3_ENABLED line at all – insert one after FA2_ENABLED
-        content = re.sub(
-            r'(set\s*\(\s*FA2_ENABLED\s+ON\s*\))',
-            r'\1\nset(FA3_ENABLED ON)',
-            content,
-        )
-
-    # ── 2. Force FA3 arch intersection to the target arch ─────────────────
-    # The upstream CMake guards FA3 at "9.0a" (Hopper); override to target
-    # so that Orin (sm87) is included.
-    content = re.sub(
-        r'(cuda_archs_loose_intersection\s*\(\s*FA3_ARCHS\s+)"[^"]*"',
-        rf'\1"{cuda_val}"',
-        content,
-    )
-
-    return content
-
-
-def modify_fa_interface_fa3_orin(content: str) -> str:
-    """
-    Patch ``_is_fa3_supported`` in vLLM's vendored flash_attn_interface.py
-    to accept sm80+ (Orin sm87) instead of only sm90.
-    """
-    content = re.sub(
-        r'if not current_platform\.is_device_capability_family\(90\):\s*\n'
-        r'(\s*)return False,\s*"FA3 is only supported on devices with compute capability 9\.x"',
-        r'if not current_platform.has_device_capability(80):\n'
-        r'\1return False, "FA3 is only supported on devices with compute capability >= 8"',
-        content,
-    )
-    return content
-
-
-def modify_fa_utils_fa3_orin(content: str) -> str:
-    """
-    Patch ``fa_utils.py`` to prefer FA3 for SM8x–SM9x (not just SM90).
-    """
-    content = re.sub(
-        r'if device_capability\.major == 9 and is_fa_version_supported\(3\):\s*\n'
-        r'(\s*)# Hopper \(SM90\): prefer FA3',
-        'if (\n'
-        '            8 <= device_capability.major < 10\n'
-        '            and is_fa_version_supported(3)\n'
-        '        ):\n'
-        '\\1# Ampere/Ada/Hopper (SM8x\u2013SM9x): prefer FA3',
-        content,
-    )
-    return content
-
-
 def generate_fa_diff(base_dir, diff_dir):
-    """Produce ``fa.diff`` for the vendored flash-attention project."""
+    """Produce ``fa.diff`` for the vendored flash-attention CMakeLists.txt."""
     cmake_path = os.path.join(
         base_dir, "cmake", "external_projects", "vllm_flash_attn.cmake")
     repo_url, git_tag = _extract_fa_git_tag(cmake_path)
@@ -468,37 +398,20 @@ def generate_fa_diff(base_dir, diff_dir):
         print("Warning: could not determine flash-attention repo/tag – skipping fa.diff")
         return False
 
-    is_orin = _cuda_arch_cmake_value() == "8.7"
+    original = _fetch_fa_cmake(repo_url, git_tag)
+    if not original:
+        print("Warning: could not fetch flash-attention source – skipping fa.diff")
+        return False
 
-    # ── Files to patch ───────────────────────────────────────────────────
-    fa_files = [
-        ("CMakeLists.txt", [modify_cmake_archs]
-         + ([modify_fa_cmake_fa3_orin] if is_orin else [])),
-    ]
-
-    diffs = []
-    for rel_path, modifiers in fa_files:
-        original = _fetch_fa_file(repo_url, git_tag, rel_path)
-        if not original:
-            print(f"Warning: could not fetch flash-attention {rel_path} – skipping")
-            continue
-        modified = original
-        for mod_fn in modifiers:
-            modified = mod_fn(modified)
-        d = _unified_diff(original, modified, rel_path)
-        if d:
-            diffs.append(d)
-            print(f"fa.diff: patch generated for {rel_path}")
-        else:
-            print(f"fa.diff: no changes for {rel_path}")
-
-    if not diffs:
-        print("flash-attention: no changes needed")
+    modified = modify_cmake_archs(original)
+    diff_text = _unified_diff(original, modified, "CMakeLists.txt")
+    if not diff_text:
+        print("flash-attention CMakeLists.txt: no changes needed")
         return True
 
     out_path = os.path.join(diff_dir, "fa.diff")
     with open(out_path, "w") as fh:
-        fh.write("\n".join(diffs) + "\n")
+        fh.write(diff_text + "\n")
     print(f"Generated {out_path}")
     return True
 
@@ -523,8 +436,6 @@ def main():
     os.makedirs(out, exist_ok=True)
 
     # ── vLLM source patches ──────────────────────────────────────────────
-    is_orin = _cuda_arch_cmake_value() == "8.7"
-
     targets = [
         ("CMakeLists.txt", modify_cmake_archs),
         (os.path.join("cmake", "external_projects", "vllm_flash_attn.cmake"),
@@ -534,17 +445,6 @@ def main():
         (os.path.join("vllm", "utils", "__init__.py"),
          modify_vllm_utils_init),
     ]
-
-    # FA3-on-Orin: patch vLLM runtime to accept sm87 for FA3
-    if is_orin:
-        targets.append((
-            os.path.join("vllm", "vllm_flash_attn", "flash_attn_interface.py"),
-            modify_fa_interface_fa3_orin,
-        ))
-        targets.append((
-            os.path.join("vllm", "v1", "attention", "backends", "fa_utils.py"),
-            modify_fa_utils_fa3_orin,
-        ))
 
     diffs = []
     for rel_path, mod_fn in targets:

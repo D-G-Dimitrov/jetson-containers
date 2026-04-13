@@ -22,10 +22,6 @@ if [ "$FORCE_BUILD" == "on" ]; then
 	exit 1
 fi
 
-if [ $VLLM_VERSION == "0.19.0" ]; then
-  uv pip install "git+https://github.com/thuml/depyf.git@v0.20.0"
-fi
-
 uv pip install \
 	compressed-tensors \
 	xgrammar \

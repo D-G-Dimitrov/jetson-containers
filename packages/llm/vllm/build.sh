@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -ex
 
-uv pip uninstall vllm && rm -rf /opt/vllm
-
 uv pip install pre-commit nanobind==2.5.0
 # Clone the repository if it doesn't exist
 git clone --branch=${VLLM_BRANCH} --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm ||
@@ -36,10 +34,6 @@ export SETUPTOOLS_SCM_PRETEND_VERSION="${VLLM_VERSION}"
 export DG_JIT_USE_NVRTC=1 # DeepGEMM now supports NVRTC with up to 10x compilation speedup
 
 python3 use_existing_torch.py || echo "skipping vllm/use_existing_torch.py"
-
-if [ $VLLM_VERSION == "0.19.0" ]; then
-  uv pip install "git+https://github.com/thuml/depyf.git@v0.20.0"
-fi
 
 uv pip install -r requirements/build.txt -v
 python3 -m setuptools_scm
