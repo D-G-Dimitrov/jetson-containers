@@ -22,7 +22,8 @@ if [ "$FORCE_BUILD" == "on" ]; then
 	exit 1
 fi
 
-uv pip install -U vllm==${VLLM_VERSION}
+uv pip uninstall vllm
+uv pip install vllm==${VLLM_VERSION}
 uv pip install ray[cgraph] fastsafetensors "transformers>5"
 uv pip install -U mistral_common
 
