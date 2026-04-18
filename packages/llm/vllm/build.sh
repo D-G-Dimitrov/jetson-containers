@@ -9,6 +9,7 @@ git clone --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm
 cd /opt/vllm
 env
 
+#git apply /tmp/vllm/turboquant.diff
 python3 /tmp/vllm/generate_diff.py
 git apply /tmp/vllm/patch.diff
 
