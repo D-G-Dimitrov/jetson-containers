@@ -39,7 +39,7 @@ python3 use_existing_torch.py || echo "skipping vllm/use_existing_torch.py"
 if [ $VLLM_VERSION == "0.20.0" ]; then
   uv pip install -r requirements/build/cuda.txt -v
 fi
-if [ $VLLM_VERSION == "0.19.0" ]; then
+if [ "$VLLM_VERSION" == "0.19.0" ] || [ "$VLLM_VERSION" == "0.19.1" ]; then
   uv pip install -r requirements/build.txt -v
 fi
 
