@@ -1,64 +1,12 @@
-diff --git a/vllm/v1/attention/backends/turboquant_attn.py b/vllm/v1/attention/backends/turboquant_attn.py
---- a/vllm/v1/attention/backends/turboquant_attn.py	(revision 153ba7f0f3d882c4feb84cea63b6a4e9618c9537)
-+++ b/vllm/v1/attention/backends/turboquant_attn.py	(date 1776499818183)
-@@ -51,7 +51,31 @@
-
- _HAS_FLASH_ATTN = is_flash_attn_varlen_func_available()
- if _HAS_FLASH_ATTN:
--    from vllm.v1.attention.backends.fa_utils import flash_attn_varlen_func
-+    import inspect as _inspect
-+
-+    from vllm.v1.attention.backends.fa_utils import (
-+        flash_attn_varlen_func as _flash_attn_varlen_func,
-+    )
-+
-+    # Upstream flash-attn on ROCm lacks the `out=` kwarg; detect once.
-+    try:
-+        _FA_SUPPORTS_OUT = (
-+            "out" in _inspect.signature(_flash_attn_varlen_func).parameters
-+        )
-+    except (TypeError, ValueError):
-+        _FA_SUPPORTS_OUT = False
-+
-+    def flash_attn_varlen_func(*args, out=None, **kwargs):
-+        kwargs.pop("out", None)
-+        if _FA_SUPPORTS_OUT and out is not None:
-+            kwargs["out"] = out
-+            return _flash_attn_varlen_func(*args, **kwargs)
-+        result = _flash_attn_varlen_func(*args, **kwargs)
-+        if out is not None:
-+            out.copy_(result)
-+            return out
-+        return result
-+
-
- # Continuation prefill: for small continuation chunks (q_len ≤ threshold),
- # use the TQ decode kernel directly instead of full-dequant + flash_attn.
-@@ -376,7 +400,14 @@
-         num_decodes = attn_metadata.num_decodes
-         num_decode_tokens = attn_metadata.num_decode_tokens
-
--        if not attn_metadata.is_prefill:
-+        # During CUDA graph capture we can only run the decode kernel —
-+        # the prefill path uses .tolist() and Python loops that are
-+        # fundamentally incompatible with graph capture.
-+        if torch.cuda.is_current_stream_capturing():
-+            attn_out = self._decode_attention(
-+                q, kv_cache, attn_metadata, Pi, centroids, PiT, layer
-+            )
-+        elif not attn_metadata.is_prefill:
-             # Pure decode batch — fast path
-             attn_out = self._decode_attention(
-                 q, kv_cache, attn_metadata, Pi, centroids, PiT, layer
 Index: tests/quantization/test_turboquant.py
 IDEA additional info:
 Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/tests/quantization/test_turboquant.py b/tests/quantization/test_turboquant.py
---- a/tests/quantization/test_turboquant.py	(revision 153ba7f0f3d882c4feb84cea63b6a4e9618c9537)
-+++ b/tests/quantization/test_turboquant.py	(date 1776496350983)
-@@ -185,22 +185,100 @@
+--- a/tests/quantization/test_turboquant.py	(revision 101584af0a8ddf67165fc89cae77ed560fb0096b)
++++ b/tests/quantization/test_turboquant.py	(date 1776943071020)
+@@ -182,22 +182,100 @@
 
      # ---- Boundary skip layers ----
 
@@ -169,9 +117,9 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/vllm/platforms/interface.py b/vllm/platforms/interface.py
---- a/vllm/platforms/interface.py	(revision 153ba7f0f3d882c4feb84cea63b6a4e9618c9537)
-+++ b/vllm/platforms/interface.py	(date 1776496351002)
-@@ -542,6 +542,39 @@
+--- a/vllm/platforms/interface.py	(revision 101584af0a8ddf67165fc89cae77ed560fb0096b)
++++ b/vllm/platforms/interface.py	(date 1776943071028)
+@@ -542,6 +542,42 @@
                  dtype=kv_cache_dtype,
                  kv_quant_mode=kv_quant_mode,
              ).page_size_bytes
@@ -205,7 +153,10 @@ diff --git a/vllm/platforms/interface.py b/vllm/platforms/interface.py
 +                    head_size=model_config.get_head_size(),
 +                    dtype=model_config.dtype,
 +                ).page_size_bytes
-+                attn_page_size_1_token = max(tq_page, skip_page)
++                # lcm, not max: skip_page is often not a multiple of
++                # tq_page, so max would leave per-layer page sizes
++                # un-unifiable downstream.
++                attn_page_size_1_token = lcm(tq_page, skip_page)
 +            else:
 +                attn_page_size_1_token = tq_page
          else:
@@ -217,8 +168,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/vllm/model_executor/layers/quantization/turboquant/config.py b/vllm/model_executor/layers/quantization/turboquant/config.py
---- a/vllm/model_executor/layers/quantization/turboquant/config.py	(revision 153ba7f0f3d882c4feb84cea63b6a4e9618c9537)
-+++ b/vllm/model_executor/layers/quantization/turboquant/config.py	(date 1776496350998)
+--- a/vllm/model_executor/layers/quantization/turboquant/config.py	(revision 101584af0a8ddf67165fc89cae77ed560fb0096b)
++++ b/vllm/model_executor/layers/quantization/turboquant/config.py	(date 1776943071034)
 @@ -2,8 +2,17 @@
  # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
  """TurboQuant configuration."""
@@ -237,7 +188,7 @@ diff --git a/vllm/model_executor/layers/quantization/turboquant/config.py b/vllm
 
  # Named TQ presets: each maps to frozen config parameters.
  # key_quant_bits: 8 = FP8 keys, 3-4 = MSE (Lloyd-Max) quantized keys.
-@@ -149,12 +158,34 @@
+@@ -159,12 +168,34 @@
          return s + (s % 2)  # round up to even
 
      @staticmethod
@@ -276,7 +227,7 @@ diff --git a/vllm/model_executor/layers/quantization/turboquant/config.py b/vllm
          if n <= 0 or num_layers <= 0:
              return []
          n = min(n, num_layers // 2)  # don't skip more than half
-@@ -165,7 +196,7 @@
+@@ -175,7 +206,7 @@
          return [str(i) for i in indices]
 
      @staticmethod
@@ -285,7 +236,7 @@ diff --git a/vllm/model_executor/layers/quantization/turboquant/config.py b/vllm
          """Create config from a named preset.
 
          Valid presets: turboquant_k8v4, turboquant_4bit_nc, etc.
-@@ -183,3 +214,31 @@
+@@ -193,3 +224,31 @@
              value_quant_bits=preset["value_quant_bits"],
              norm_correction=preset["norm_correction"],
          )
@@ -323,8 +274,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/vllm/engine/arg_utils.py b/vllm/engine/arg_utils.py
---- a/vllm/engine/arg_utils.py	(revision 153ba7f0f3d882c4feb84cea63b6a4e9618c9537)
-+++ b/vllm/engine/arg_utils.py	(date 1776496350993)
+--- a/vllm/engine/arg_utils.py	(revision 101584af0a8ddf67165fc89cae77ed560fb0096b)
++++ b/vllm/engine/arg_utils.py	(date 1776943071046)
 @@ -1642,29 +1642,15 @@
              kv_offloading_backend=self.kv_offloading_backend,
          )
