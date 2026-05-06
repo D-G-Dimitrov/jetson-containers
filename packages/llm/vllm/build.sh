@@ -57,7 +57,7 @@ if [ "${ARCH}" = "aarch64" ]; then
 fi
 
 uv build --wheel --no-build-isolation -v --out-dir /opt/vllm/wheels .
-uv pip install /opt/vllm/wheels/vllm*.whl
+uv pip install /opt/vllm/wheels/vllm*.whl --index-url https://pypi.org/simple
 
 cd /opt/vllm
 uv pip install compressed-tensors
