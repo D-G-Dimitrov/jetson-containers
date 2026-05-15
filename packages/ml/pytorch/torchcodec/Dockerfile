@@ -10,7 +10,7 @@ ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 
 ARG TORCHCODEC_VERSION \
-    FORCE_BUILD=off
+    FORCE_BUILD=on
 
 COPY install.sh build.sh /tmp/torchcodec/
 

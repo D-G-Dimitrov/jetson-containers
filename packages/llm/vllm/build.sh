@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -ex
 
+uv pip install --no-build-isolation \
+     numba-cuda \
+    "lm-format-enforcer==0.11.3" \
+    "quack-kernels @ git+https://github.com/Dao-AILab/quack.git" \
+    || uv pip install --no-build-isolation \
+       numba-cuda \
+       "lm-format-enforcer @ git+https://github.com/noamgat/lm-format-enforcer.git@v0.11.3" \
+       "quack-kernels @ git+https://github.com/Dao-AILab/quack.git"
+
 uv pip install pre-commit nanobind==2.5.0
 # Clone the repository if it doesn't exist
 git clone --branch=${VLLM_BRANCH} --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm ||
