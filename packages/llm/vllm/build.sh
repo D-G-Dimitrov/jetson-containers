@@ -66,10 +66,11 @@ if [ "${ARCH}" = "aarch64" ]; then
 fi
 
 uv build --wheel --no-build-isolation -v --out-dir /opt/vllm/wheels .
+
+# Optionally upload to a repository using Twine
+twine upload --verbose /opt/vllm/wheels/vllm*.whl || echo "Failed to upload wheel to ${TWINE_REPOSITORY_URL}"
+
 uv pip install /opt/vllm/wheels/vllm*.whl --index-url https://pypi.org/simple
 
 cd /opt/vllm
 uv pip install compressed-tensors
-
-# Optionally upload to a repository using Twine
-twine upload --verbose /opt/vllm/wheels/vllm*.whl || echo "Failed to upload wheel to ${TWINE_REPOSITORY_URL}"
