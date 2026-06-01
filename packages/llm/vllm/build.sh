@@ -12,9 +12,20 @@ set -ex
 
 uv pip install pre-commit nanobind==2.5.0 flashinfer-python==0.6.12 flashinfer-cubin==0.6.12 flashinfer-jit-cache==0.6.12
 
-# Clone the repository if it doesn't exist
-git clone --branch=${VLLM_BRANCH} --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm ||
-git clone --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm
+if [ -d /opt/vllm/.git ]; then
+  # Repo already exists in the base image (shallow clone) — restore, fetch, and checkout the desired ref
+  cd /opt/vllm
+  git restore .
+  # Try fetching as a tag first, then as a branch name
+  git fetch --depth 1 origin "refs/tags/${VLLM_BRANCH}:refs/tags/${VLLM_BRANCH}" 2>/dev/null || \
+    git fetch --depth 1 origin "${VLLM_BRANCH}"
+  git checkout "${VLLM_BRANCH}"
+  git submodule update --init --recursive
+else
+  # Fresh clone
+  git clone --branch="${VLLM_BRANCH}" --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm || \
+    git clone --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm
+fi
 
 cd /opt/vllm
 env
