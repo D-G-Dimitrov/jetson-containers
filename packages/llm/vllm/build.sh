@@ -11,6 +11,8 @@ set -ex
 #       "quack-kernels @ git+https://github.com/Dao-AILab/quack.git"
 
 uv pip install pre-commit nanobind==2.5.0 flashinfer-python==0.6.12 flashinfer-cubin==0.6.12 flashinfer-jit-cache==0.6.12
+
+rm -rf /opt/vllm
 # Clone the repository if it doesn't exist
 git clone --branch=${VLLM_BRANCH} --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm ||
 git clone --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm
