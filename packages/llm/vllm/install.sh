@@ -21,6 +21,7 @@ fi
 
 uv pip install \
 	compressed-tensors \
+	tokenspeed-mla \
 	xgrammar \
 	vllm==${VLLM_VERSION}+${CUDA_SUFFIX}
 
