@@ -21,6 +21,7 @@ fi
 
 uv pip install \
 	compressed-tensors \
+	flashinfer-python==0.6.12 flashinfer-cubin==0.6.12 flashinfer-jit-cache==0.6.12 \
 	tokenspeed-mla \
 	xgrammar \
 	vllm==${VLLM_VERSION}+${CUDA_SUFFIX}
