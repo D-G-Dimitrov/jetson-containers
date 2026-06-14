@@ -17,7 +17,7 @@ diff --git a/src/graph/xml.cc b/src/graph/xml.cc
    }
    NCCLCHECK(xmlGetAttrInt(gpuNode, "dev", &dev));
 @@ -884,8 +890,8 @@
-   NCCLCHECK(ncclTopoGetPciNode(xml, busId, &node));
+   NCCLCHECK(ncclTopoGetPciNode(Kxml, busId, &node));
    NCCLCHECK(xmlSetAttrIfUnset(node, "class", "0x03"));
    NCCLCHECK(ncclTopoGetXmlFromSys(node, xml));
 -  nvmlDevice_t nvmlDev;
