@@ -12,7 +12,7 @@ echo "Building NVIDIA NCCL $NCCL_VERSION (NCCL)"
 apt-get update
 apt-get install -y --no-install-recommends build-essential devscripts debhelper fakeroot
 
-git clone --branch=v${NCCL_VERSION}-1 https://github.com/NVIDIA/nccl
+git clone --depth=1 --branch=v${NCCL_VERSION}-1 https://github.com/NVIDIA/nccl
 cd nccl
 
 # Experimental support for distributed GPU communication on Jetson
