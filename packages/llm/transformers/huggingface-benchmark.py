@@ -35,13 +35,15 @@ print(f'Running on device {device}')
 if args.token:
     print("Logging into HuggingFace Hub...")
     huggingface_hub.login(token=args.token)
-  
+
 # detect the type of model it is
 model_info = huggingface_hub.model_info(args.model)
 model_type = model_info.transformersInfo['auto_model']
 
 if model_type != 'AutoModelForCausalLM':
-    raise ValueError(f"text-generation benchmark only supports CausalLM models (GPT,llama,ect) - {args.model} is {model_type}")
+    print(
+        f"WARNING: {args.model} reports model type '{model_type}', expected 'AutoModelForCausalLM'. Proceeding anyway...")
+    # raise ValueError(f"text-generation benchmark only supports CausalLM models (GPT,llama,ect) - {args.model} is {model_type}")
 
 # end the prompt with a newline
 #args.prompt += '\n'
@@ -64,7 +66,7 @@ elif args.precision == 'fp16':
     kwargs['torch_dtype'] = torch.float16
 elif args.precision == 'fp32':
     kwargs['torch_dtype'] = torch.float32
-    
+
 # load model
 print(f'Loading model {args.model} ({args.precision})')
 
@@ -72,7 +74,7 @@ model = AutoModelForCausalLM.from_pretrained(args.model, device_map=device, **kw
 
 #if args.precision == 'fp32' or args.precision == 'fp16':
 #    model = model.to(device)   # int8/int4 already sets the device
-    
+
 # run inference
 for num_tokens in args.tokens:
     print(f"Generating {num_tokens} tokens with {args.model} on prompt:  {args.prompt}")
@@ -83,16 +85,16 @@ for num_tokens in args.tokens:
         time_begin = time.perf_counter()
         generated_ids = model.generate(input_ids, do_sample=False, min_length=num_tokens+input_ids.shape[1], max_length=num_tokens+input_ids.shape[1]) #min_new_tokens=num_tokens, max_new_tokens=num_tokens)  # greedy generation of fixed # of tokens
         time_elapsed = (time.perf_counter() - time_begin)
-        
+
         print(tokenizer.decode(generated_ids[0], skip_special_tokens=True))
-        
+
         if run >= args.warmup:
             time_avg += time_elapsed
-            
+
         print(f"\n{'WARMUP' if run < args.warmup else 'RUN'} {run} = {time_elapsed:.4f} seconds, {num_tokens/time_elapsed:.1f} tokens/sec ({args.precision})")
-      
+
     # compute statistics
-    time_avg /= args.runs  
+    time_avg /= args.runs
     tokens_sec = num_tokens / time_avg
     memory_usage = (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss + resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss) / 1024  # https://stackoverflow.com/a/7669482
 
