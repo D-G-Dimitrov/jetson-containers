@@ -1,7 +1,7 @@
 diff --git a/src/graph/xml.cc b/src/graph/xml.cc
---- a/src/graph/xml.cc	(revision 25368a7f78bae866f29e46938af94fa586c84484)
-+++ b/src/graph/xml.cc	(date 1771920197768)
-@@ -741,7 +741,13 @@
+--- a/src/graph/xml.cc	(revision b91894bd5b190c874d98a017f93f5daa515b65d0)
++++ b/src/graph/xml.cc	(date 1781425171686)
+@@ -742,7 +742,13 @@
    int dev = -1;
    NCCLCHECK(xmlGetAttrIndex(gpuNode, "dev", &index));
    if (index == -1) {
@@ -16,8 +16,8 @@ diff --git a/src/graph/xml.cc b/src/graph/xml.cc
      NCCLCHECK(xmlSetAttrInt(gpuNode, "dev", dev));
    }
    NCCLCHECK(xmlGetAttrInt(gpuNode, "dev", &dev));
-@@ -884,8 +890,8 @@
-   NCCLCHECK(ncclTopoGetPciNode(Kxml, busId, &node));
+@@ -885,8 +891,8 @@
+   NCCLCHECK(ncclTopoGetPciNode(xml, busId, &node));
    NCCLCHECK(xmlSetAttrIfUnset(node, "class", "0x03"));
    NCCLCHECK(ncclTopoGetXmlFromSys(node, xml));
 -  nvmlDevice_t nvmlDev;
@@ -29,9 +29,9 @@ diff --git a/src/graph/xml.cc b/src/graph/xml.cc
  }
 
 diff --git a/src/init.cc b/src/init.cc
---- a/src/init.cc	(revision 25368a7f78bae866f29e46938af94fa586c84484)
-+++ b/src/init.cc	(date 1771920197780)
-@@ -463,11 +463,15 @@
+--- a/src/init.cc	(revision b91894bd5b190c874d98a017f93f5daa515b65d0)
++++ b/src/init.cc	(date 1781425171697)
+@@ -481,11 +481,15 @@
    NCCLCHECK(ncclCudaContextTrack(&comm->context));
 
    NCCLCHECK(getBusId(comm->cudaDev, &comm->busId));
@@ -50,7 +50,7 @@ diff --git a/src/init.cc b/src/init.cc
 
    comm->compCap = ncclCudaCompCap();
    TRACE(NCCL_INIT,"comm %p rank %d nranks %d cudaDev %d busId %lx compCap %d", comm, rank, ndev, comm->cudaDev, comm->busId, comm->compCap);
-@@ -672,35 +676,37 @@
+@@ -689,35 +693,37 @@
    {
      // MNNVL: Request the fabric UUID and partition info
      char busId[NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE];
