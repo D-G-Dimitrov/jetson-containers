@@ -219,8 +219,8 @@ def pip_cache(version, requires=None):
 if IS_TEGRA:
     package = [
         # JetPack 7
-        cuda_package('13.3',
-                     'https://developer.download.nvidia.com/compute/cuda/13.3.0/local_installers/cuda-repo-ubuntu2404-13-3-local_13.3.0-610.43.02-1_arm64.deb`',
+        cuda_package('13.2',
+                     'https://developer.download.nvidia.com/compute/cuda/13.2.1/local_installers/cuda-repo-ubuntu2404-13-2-local_13.2.1-595.58.03-1_arm64.deb`',
                      requires='aarch64'),
         cuda_samples('13.2', requires='>=36'),
 
