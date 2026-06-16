@@ -9,6 +9,7 @@ git clone --depth=1 --recursive https://github.com/Dao-AILab/causal-conv1d  /opt
 cd /opt/causalconv1d
 
 # Generate the diff dynamically
+git apply /tmp/causalconv1d/setup.diff
 python3 /tmp/causalconv1d/generate_diff.py
 git apply /tmp/causalconv1d/patch.diff
 git diff
