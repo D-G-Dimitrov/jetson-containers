@@ -1,3 +1,5 @@
+from jetson_containers import L4T_VERSION
+
 
 def ffmpeg(source, version=None, requires=None, default=False, alias=[]):
   """
@@ -21,6 +23,9 @@ def ffmpeg(source, version=None, requires=None, default=False, alias=[]):
     pkg['build_args'] = {'FFMPEG_VERSION': version}
     pkg['depends'] = pkg['depends'] + ['cmake', 'video-codec-sdk']
     tag = version
+
+    if L4T_VERSION.major >= 39:
+      source = 'apt'
   else:
     tag = source
 
@@ -34,7 +39,6 @@ def ffmpeg(source, version=None, requires=None, default=False, alias=[]):
 package = [
   # ffmpeg('apt', default=True),
   ffmpeg('git', version='7.1', alias=['ffmpeg:7.1'], default=False),
-  ffmpeg('git', version='8.1', alias=['ffmpeg:8.1'], default=False),
-  ffmpeg('jetpack', requires='==36.*'),
-  ffmpeg('apt', requires='==39.*', default=True),
+  ffmpeg('git', version='8.1', alias=['ffmpeg:8.1'], default=True),
+  ffmpeg('jetpack', requires='==36.*')
 ]
