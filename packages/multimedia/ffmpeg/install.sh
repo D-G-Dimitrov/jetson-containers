@@ -23,7 +23,7 @@ if [ "$FFMPEG_INSTALL" == "apt" ] || [ "$FFMPEG_INSTALL" == "jetpack" ]; then
       libpostproc-dev \
 	    libswscale-dev \
       libswresample-dev \
-      ffmpeg$VERSION
+      ffmpeg
   apt-get clean
   rm -rf /var/lib/apt/lists/*
 elif [ "$FFMPEG_INSTALL" == "git" ]; then
