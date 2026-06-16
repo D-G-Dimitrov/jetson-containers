@@ -36,4 +36,5 @@ package = [
   ffmpeg('git', version='7.1', alias=['ffmpeg:7.1'], default=False),
   ffmpeg('git', version='8.1', alias=['ffmpeg:8.1'], default=True),
   ffmpeg('jetpack', requires='==36.*'),
+  ffmpeg('apt', requires='==39.*'),
 ]
