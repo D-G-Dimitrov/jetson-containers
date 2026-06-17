@@ -19,6 +19,33 @@ pipe = DiffusionPipeline.from_pretrained(
     device_map=None,
 ).to("cuda")
 
+# Attempt to enable xformers memory-efficient attention, with compatibility
+# shims for newer xformers versions that moved/renamed the API.
+try:
+    import xformers.ops as xops
+except ImportError:
+    xops = None
+
+if xops is not None:
+    # If the old symbol is missing, try to find the new one and attach it
+    if not hasattr(xops, "memory_efficient_attention"):
+        mea = None
+        # Try the most likely new locations
+        try:
+            # new top-level import in some versions
+            from xformers.ops import memory_efficient_attention as mea
+        except Exception:
+            try:
+                # other versions expose it under fmha
+                from xformers.ops.fmha import memory_efficient_attention as mea
+            except Exception:
+                mea = None
+
+        if mea is not None:
+            # Provide the old attribute name for downstream code that expects it
+            setattr(xops, "memory_efficient_attention", mea)
+
+# Now call the diffusers helper which will either succeed or raise a helpful exception
 try:
     pipe.enable_xformers_memory_efficient_attention()
     print("xformers memory-efficient attention enabled")
