@@ -47,6 +47,41 @@ try:
 except ImportError:
     xops = None
 
+# Compatibility shim: some xformers versions moved/renamed
+# memory_efficient_attention (e.g., into xformers.ops.fmha). If the
+# old attribute is missing, try to import it from likely locations and
+# attach it back to xops so downstream callers can use xops.memory_efficient_attention.
+if xops is not None:
+    if not hasattr(xops, "memory_efficient_attention"):
+        mea = None
+        try:
+            from xformers.ops import memory_efficient_attention as mea
+        except Exception:
+            try:
+                from xformers.ops.fmha import memory_efficient_attention as mea
+            except Exception:
+                mea = None
+
+        if mea is not None:
+            setattr(xops, "memory_efficient_attention", mea)
+
+# Determine what xformers functionality is actually available. Newer
+# xformers builds may expose fmha.* backends but not the convenience
+# memory_efficient_attention symbol, or vice-versa. Set flags so we can
+# safely skip xformers benchmarks if the required pieces are missing.
+xformers_has_mea = bool(xops is not None and hasattr(xops, "memory_efficient_attention"))
+xops_cutlass_available = False
+xops_flash_available = False
+if xops is not None and hasattr(xops, "fmha"):
+    try:
+        xops_cutlass_available = hasattr(xops.fmha, "cutlass") and hasattr(xops.fmha.cutlass, "FwOp")
+    except Exception:
+        xops_cutlass_available = False
+    try:
+        xops_flash_available = hasattr(xops.fmha, "flash") and hasattr(xops.fmha.flash, "FwOp")
+    except Exception:
+        xops_flash_available = False
+
 
 def flops(batch, seqlen, headdim, nheads, causal, mode="fwd"):
     assert mode in ["fwd", "bwd", "fwd_bwd"]
@@ -103,8 +138,8 @@ dropout_p = 0.0
 
 methods = (["Flash2", "Pytorch"]
            + (["Triton"] if attention_triton is not None else [])
-           + (["xformers.c"] if xops is not None else [])
-           + (["xformers.f"] if xops is not None else []))
+           + (["xformers.c"] if xformers_has_mea and xops_cutlass_available else [])
+           + (["xformers.f"] if xformers_has_mea and xops_flash_available else []))
 
 time_f = {}
 time_b = {}
@@ -156,7 +191,7 @@ for causal in causal_vals:
                 time_f[config, "Triton"] = f
                 time_b[config, "Triton"] = min(b, b0) if min(b, b0) < float('inf') else float('nan')
 
-            if xops is not None:
+            if xformers_has_mea and xops_cutlass_available:
                 q, k, v = [torch.randn(batch_size, seqlen, nheads, headdim, device=device, dtype=dtype,
                                     requires_grad=True) for _ in range(3)]
                 f, b = time_fwd_bwd(
@@ -167,7 +202,7 @@ for causal in causal_vals:
                 time_f[config, "xformers.c"] = f
                 time_b[config, "xformers.c"] = b
 
-            if xops is not None:
+            if xformers_has_mea and xops_flash_available:
                 q, k, v = [torch.randn(batch_size, seqlen, nheads, headdim, device=device, dtype=dtype,
                                     requires_grad=True) for _ in range(3)]
                 f, b = time_fwd_bwd(
