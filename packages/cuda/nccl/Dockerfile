@@ -1,5 +1,9 @@
 FROM vllm/vllm-openai:latest
 
+ENV TRANSFORMERS_CACHE=/data/models/huggingface \
+    HUGGINGFACE_HUB_CACHE=/data/models/huggingface \
+    HF_HOME=/data/models/huggingface
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential devscripts debhelper fakeroot git cmake \
     && rm -rf /var/lib/apt/lists/*
@@ -16,3 +20,7 @@ RUN cd /build/nccl && \
       CUDA_HOME=/usr/local/cuda
 
 RUN dpkg -i /build/nccl/build/pkg/deb/*.deb && ldconfig -p | grep nccl
+
+RUN python3 -m pip install --upgrade pip && pip install ray[cgraph]
+
+ENTRYPOINT ["/bin/bash"]
