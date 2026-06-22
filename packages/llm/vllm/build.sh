@@ -21,9 +21,9 @@ sed -i \
   requirements/common.txt
 
 # Loosen flashinfer requirement to allow latest version.
-sed -E -i 's/^(flashinfer-(python|cubin))==.*$/\1/' requirements/cuda.txt
+#sed -E -i 's/^(flashinfer-(python|cubin))==.*$/\1/' requirements/cuda.txt
 
-grep gguf requirements/common.txt
+#grep gguf requirements/common.txt
 
 
 export USE_CUDNN=1
