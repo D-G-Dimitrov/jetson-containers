@@ -16,5 +16,3 @@ RUN cd /build/nccl && \
       CUDA_HOME=/usr/local/cuda
 
 RUN dpkg -i /build/nccl/build/pkg/deb/*.deb && ldconfig -p | grep nccl
-
-RUN dpkg -i build/pkg/deb/*.deb && ldconfig -p | grep nccl
