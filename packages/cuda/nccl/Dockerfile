@@ -1,4 +1,5 @@
-FROM vllm/vllm-openai:latest
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
 
 ENV TRANSFORMERS_CACHE=/data/models/huggingface \
     HUGGINGFACE_HUB_CACHE=/data/models/huggingface \
