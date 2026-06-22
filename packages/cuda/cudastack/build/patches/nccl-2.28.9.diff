@@ -1,33 +1,3 @@
-diff --git a/src/graph/xml.cc b/src/graph/xml.cc
---- a/src/graph/xml.cc	(revision dbc86fd06e8b0c4517b95d8958a09ccacf9520c9)
-+++ b/src/graph/xml.cc	(date 1782116569888)
-@@ -741,7 +741,13 @@
-   int dev = -1;
-   NCCLCHECK(xmlGetAttrIndex(gpuNode, "dev", &index));
-   if (index == -1) {
--    NCCLCHECK(ncclNvmlDeviceGetIndex(nvmlDev, (unsigned int*)&dev));
-+    if (nvmlDev == NULL) {
-+      const char* busId;
-+      NCCLCHECK(xmlGetAttr(pciNode, "busid", &busId));
-+      if (busId == NULL || cudaDeviceGetByPCIBusId(&dev, busId) != cudaSuccess) dev = -1;
-+    } else {
-+      NCCLCHECK(ncclNvmlDeviceGetIndex(nvmlDev, (unsigned int*)&dev));
-+    }
-     NCCLCHECK(xmlSetAttrInt(gpuNode, "dev", dev));
-   }
-   NCCLCHECK(xmlGetAttrInt(gpuNode, "dev", &dev));
-@@ -884,8 +890,8 @@
-   NCCLCHECK(ncclTopoGetPciNode(xml, busId, &node));
-   NCCLCHECK(xmlSetAttrIfUnset(node, "class", "0x03"));
-   NCCLCHECK(ncclTopoGetXmlFromSys(node, xml));
--  nvmlDevice_t nvmlDev;
--  NCCLCHECK(ncclNvmlDeviceGetHandleByPciBusId(busId, &nvmlDev));
-+  nvmlDevice_t nvmlDev = NULL;
-+  if (ncclNvmlDeviceGetHandleByPciBusId(busId, &nvmlDev) != ncclSuccess) nvmlDev = NULL;
-   NCCLCHECK(ncclTopoGetXmlFromGpu(node, nvmlDev, xml, gpuNode));
-   return ncclSuccess;
- }
-
 diff --git a/src/init.cc b/src/init.cc
 --- a/src/init.cc	(revision dbc86fd06e8b0c4517b95d8958a09ccacf9520c9)
 +++ b/src/init.cc	(date 1782116569883)
@@ -116,3 +86,32 @@ diff --git a/src/init.cc b/src/init.cc
      }
    }
 
+diff --git a/src/graph/xml.cc b/src/graph/xml.cc
+--- a/src/graph/xml.cc	(revision dbc86fd06e8b0c4517b95d8958a09ccacf9520c9)
++++ b/src/graph/xml.cc	(date 1782116569888)
+@@ -741,7 +741,13 @@
+   int dev = -1;
+   NCCLCHECK(xmlGetAttrIndex(gpuNode, "dev", &index));
+   if (index == -1) {
+-    NCCLCHECK(ncclNvmlDeviceGetIndex(nvmlDev, (unsigned int*)&dev));
++    if (nvmlDev == NULL) {
++      const char* busId;
++      NCCLCHECK(xmlGetAttr(pciNode, "busid", &busId));
++      if (busId == NULL || cudaDeviceGetByPCIBusId(&dev, busId) != cudaSuccess) dev = -1;
++    } else {
++      NCCLCHECK(ncclNvmlDeviceGetIndex(nvmlDev, (unsigned int*)&dev));
++    }
+     NCCLCHECK(xmlSetAttrInt(gpuNode, "dev", dev));
+   }
+   NCCLCHECK(xmlGetAttrInt(gpuNode, "dev", &dev));
+@@ -884,8 +890,8 @@
+   NCCLCHECK(ncclTopoGetPciNode(xml, busId, &node));
+   NCCLCHECK(xmlSetAttrIfUnset(node, "class", "0x03"));
+   NCCLCHECK(ncclTopoGetXmlFromSys(node, xml));
+-  nvmlDevice_t nvmlDev;
+-  NCCLCHECK(ncclNvmlDeviceGetHandleByPciBusId(busId, &nvmlDev));
++  nvmlDevice_t nvmlDev = NULL;
++  if (ncclNvmlDeviceGetHandleByPciBusId(busId, &nvmlDev) != ncclSuccess) nvmlDev = NULL;
+   NCCLCHECK(ncclTopoGetXmlFromGpu(node, nvmlDev, xml, gpuNode));
+   return ncclSuccess;
+ }
