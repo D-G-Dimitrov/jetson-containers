@@ -1,6 +1,7 @@
 ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 
+ARG NCCL_VERSION
 ARG VLLM_BUILD_COMMIT
 ARG VLLM_BUILD_PIPELINE
 ARG VLLM_BUILD_URL
@@ -18,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential devscripts debhelper fakeroot git cmake \
     && rm -rf /var/lib/apt/lists/*
 
-RUN git clone --depth 1 --branch v2.29.7-1 https://github.com/NVIDIA/nccl.git /build/nccl
+RUN git clone --depth 1 --branch v${NCCL_VERSION}-1 https://github.com/NVIDIA/nccl.git /build/nccl
 
 COPY patch.diff /build/patch.diff
 
