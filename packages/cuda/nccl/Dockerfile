@@ -1,9 +1,18 @@
 ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 
+ARG VLLM_BUILD_COMMIT
+ARG VLLM_BUILD_PIPELINE
+ARG VLLM_BUILD_URL
+ARG VLLM_IMAGE_TAG
+
 ENV TRANSFORMERS_CACHE=/data/models/huggingface \
     HUGGINGFACE_HUB_CACHE=/data/models/huggingface \
-    HF_HOME=/data/models/huggingface
+    HF_HOME=/data/models/huggingface \
+    VLLM_BUILD_COMMIT=${VLLM_BUILD_COMMIT:-unknown} \
+    VLLM_BUILD_PIPELINE=${VLLM_BUILD_PIPELINE:-local} \
+    VLLM_BUILD_URL=${VLLM_BUILD_URL:-} \
+    VLLM_IMAGE_TAG=${VLLM_IMAGE_TAG:-local/vllm-openai:dev}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential devscripts debhelper fakeroot git cmake \
@@ -22,6 +31,7 @@ RUN cd /build/nccl && \
 
 RUN dpkg -i /build/nccl/build/pkg/deb/*.deb && ldconfig -p | grep nccl
 
-RUN python3 -m pip install --upgrade pip && pip install --root-user-action ignore ray[cgraph,default]
+RUN python3 -m pip install --upgrade pip && \
+    pip install --root-user-action ignore ray[cgraph,default]
 
 ENTRYPOINT ["/bin/bash"]
