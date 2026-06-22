@@ -22,7 +22,7 @@ sed -i \
 
 # Loosen flashinfer requirement to allow latest version.
 sed -E -i 's/^(flashinfer-(python|cubin))==.*$/\1/' requirements/cuda.txt
-sed -E -i 's/^(nvidia-cutlass-dsl)==.*$/\1/' requirements/cuda.txt
+sed -i -E 's/nvidia-cutlass-dsl(\[cu13\])?==.*/nvidia-cutlass-dsl\1/' requirements/cuda.txt
 
 grep gguf requirements/common.txt
 
