@@ -22,7 +22,11 @@ fi
 uv pip install \
 	compressed-tensors \
 	xgrammar \
+	ray[cgraph,default] \
+	fastsafetensors \
 	vllm==${VLLM_VERSION}+${CUDA_SUFFIX}
+
+uv pip install -U flashinfer-python mistral_common transformers
 
 # File "/opt/venv/lib/python3.12/site-packages/gguf/gguf_reader.py"
 # `newbyteorder` was removed from the ndarray class in NumPy 2.0
