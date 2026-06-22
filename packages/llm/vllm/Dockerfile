@@ -20,5 +20,5 @@ ARG VLLM_VERSION \
 
 COPY build.sh install.sh patches /tmp/vllm/
 
-RUN /tmp/vllm/install.sh || /tmp/vllm/build.sh && \
-    /tmp/transformers/install.sh
+RUN /tmp/vllm/install.sh || /tmp/vllm/build.sh
+#    /tmp/transformers/install.sh
