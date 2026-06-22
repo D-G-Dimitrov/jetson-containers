@@ -22,6 +22,6 @@ RUN cd /build/nccl && \
 
 RUN dpkg -i /build/nccl/build/pkg/deb/*.deb && ldconfig -p | grep nccl
 
-RUN python3 -m pip install --upgrade pip && pip install ray[cgraph]
+RUN python3 -m pip install --upgrade pip && pip install --root-user-action ignore ray[cgraph,default]
 
 ENTRYPOINT ["/bin/bash"]
