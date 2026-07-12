@@ -19,6 +19,8 @@ if [ "$FORCE_BUILD" == "on" ]; then
 	exit 1
 fi
 
+pip uninstall -y nvidia-cutlass-dsl-libs-cu12
+
 uv pip install \
 	compressed-tensors \
 	xgrammar \
@@ -26,7 +28,12 @@ uv pip install \
 	fastsafetensors \
 	vllm==${VLLM_VERSION}
 
-uv pip install -U flashinfer-python flashinfer-cubin mistral_common transformers
+pip install --index-url https://pypi.org/simple \
+  "apache-tvm-ffi==0.1.9" \
+  "flashinfer-python==0.6.13" \
+  "nvidia-cutlass-dsl-libs-base==4.5.2" \
+  "nvidia-cutlass-dsl[cu13]==4.5.2" \
+  "setuptools>=77.0.3,<81.0.0"
 
 # File "/opt/venv/lib/python3.12/site-packages/gguf/gguf_reader.py"
 # `newbyteorder` was removed from the ndarray class in NumPy 2.0

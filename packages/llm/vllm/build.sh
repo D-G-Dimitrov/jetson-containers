@@ -12,13 +12,14 @@ env
 python3 /tmp/vllm/generate_diff.py
 git apply /tmp/vllm/patch.diff
 
-sed -i \
-  -e 's|^gguf.*|gguf|g' \
-  -e 's|^opencv-python-headless.*||g' \
-  -e 's|^mistral_common.*|mistral_common|g' \
-  -e 's|^compressed-tensors.*||g' \
-  -e 's|^xgrammar.*||g' \
-  requirements/common.txt
+# Not needed in JP7.2
+#sed -i \
+#  -e 's|^gguf.*|gguf|g' \
+#  -e 's|^opencv-python-headless.*||g' \
+#  -e 's|^mistral_common.*|mistral_common|g' \
+#  -e 's|^compressed-tensors.*||g' \
+#  -e 's|^xgrammar.*||g' \
+#  requirements/common.txt
 
 # Loosen flashinfer requirement to allow latest version.
 #sed -E -i 's/^(flashinfer-(python|cubin))==.*$/\1/' requirements/cuda.txt
