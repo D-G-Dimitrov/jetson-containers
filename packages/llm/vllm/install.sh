@@ -27,7 +27,11 @@ uv pip install \
 	ray[cgraph,default] \
 	fastsafetensors
 
-pip install --index-url https://pypi.org/simple --extra-index-url https://flashinfer.ai/whl/ "flashinfer-cubin==0.6.14" vllm==${VLLM_VERSION}
+pip install \
+  --extra-index-url https://pypi.org/simple \
+  --extra-index-url https://flashinfer.ai/whl/ \
+  "flashinfer-cubin==0.6.15.post1" \
+  vllm=="${VLLM_VERSION}.${CUDA_SUFFIX}"
 
 pip check
 

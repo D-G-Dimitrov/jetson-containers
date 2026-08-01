@@ -45,7 +45,7 @@ else
   exit 1
 fi
 
-uv pip install -r "${BUILD_REQUIREMENTS_FILE}" -v
+pip install --extra-index-url https://pypi.org/simple --extra-index-url https://flashinfer.ai/whl/  -r "${BUILD_REQUIREMENTS_FILE}" -v
 python3 -m setuptools_scm
 
 ARCH=$(uname -i)
@@ -58,7 +58,12 @@ if [ "${ARCH}" = "aarch64" ]; then
 fi
 
 uv build --wheel --no-build-isolation -v --out-dir /opt/vllm/wheels .
-uv pip install /opt/vllm/wheels/vllm*.whl
+
+pip install \
+  --extra-index-url https://pypi.org/simple \
+  --extra-index-url https://flashinfer.ai/whl/ \
+  "flashinfer-cubin==0.6.15.post1" \
+  /opt/vllm/wheels/vllm*.whl
 
 cd /opt/vllm
 uv pip install compressed-tensors
