@@ -6,5 +6,5 @@ if [ "$FORCE_BUILD" == "on" ]; then
 	exit 1
 fi
 
-uv pip install mamba_ssm==${MAMBA_VERSION} || \
-uv pip install mamba_ssm==${MAMBA_VERSION_SPEC}
+uv pip install --index-strategy unsafe-best-match mamba_ssm==${MAMBA_VERSION} || \
+uv pip install --index-strategy unsafe-best-match mamba_ssm==${MAMBA_VERSION_SPEC}
