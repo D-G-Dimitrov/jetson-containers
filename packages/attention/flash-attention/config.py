@@ -12,7 +12,7 @@ def flash_attn(version, requires=None, default=False):
     pkg['build_args'] = {
         'FLASH_ATTENTION_VERSION': version,
         'IS_SBSA': IS_SBSA,
-        'CUDA_ARCHITECTURES': CUDA_ARCHITECTURES
+        'CUDA_ARCHITECTURES': 87
     }
 
     builder = pkg.copy()
