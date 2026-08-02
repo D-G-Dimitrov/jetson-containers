@@ -12,7 +12,7 @@ FROM ${BASE_IMAGE}
 
 ARG ONNX_VERSION
 
-RUN pip install onnx --extra-index-url https://pypi.org/simple || \
+RUN uv pip install onnx || \
     uv pip install git+https://github.com/onnx/onnx@${ONNX_VERSION} && \
     uv pip show onnx && \
     python3 -c 'import onnx; print(onnx.__version__)'
