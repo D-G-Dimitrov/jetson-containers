@@ -37,5 +37,5 @@ package = [
     vllm('0.23.1rc0', depends=['flashinfer'], default=False),
     vllm('0.25.0', depends=['flashinfer'], default=False),
     vllm('0.26.0', depends=['flashinfer'], default=True),
-    vllm('0.27.0', depends=['flashinfer'], default=False),
+    vllm('0.27.0.dev0', depends=['flashinfer'], default=False),
 ]
