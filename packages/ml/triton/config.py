@@ -28,7 +28,7 @@ def triton(version, branch=None, requires=None, default=False):
     return pkg, builder
 
 package = [
-    triton('3.8.0', branch='release/3.8.x', default=(PYTORCH_VERSION >= Version('2.13'))),
+    # triton('3.8.0', branch='release/3.8.x', default=(PYTORCH_VERSION >= Version('2.13'))),
     triton('3.7.1', branch='release/3.7.1', default=(PYTORCH_VERSION >= Version('2.13'))),
     triton('3.7.0', branch='release/3.7.x', default=(PYTORCH_VERSION >= Version('2.10'))),
     triton('3.5.1', branch='release/3.5.x', default=(PYTORCH_VERSION >= Version('2.9'))), # Newer Kernels for Thor
