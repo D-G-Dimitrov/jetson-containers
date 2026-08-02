@@ -26,8 +26,7 @@ if [ "$codebase_version" != "${FLASH_ATTENTION_VERSION}" ]; then
     cat flash_attn/__init__.py
 fi
 
-# export MAX_JOBS="$(nproc)" this breaks with actual flash-attention
-
+export MAX_JOBS="$(nproc)"
 export FLASH_ATTN_CUDA_ARCHS=87
 export NVCC_THREADS=1
 export CMAKE_BUILD_PARALLEL_LEVEL=$MAX_JOBS
