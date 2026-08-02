@@ -27,14 +27,8 @@ if [ "$codebase_version" != "${FLASH_ATTENTION_VERSION}" ]; then
 fi
 
 # export MAX_JOBS="$(nproc)" this breaks with actual flash-attention
-if [[ -z "${IS_SBSA}" || "${IS_SBSA}" == "0" || "${IS_SBSA,,}" == "false" ]]; then
-    export MAX_JOBS=12
-    # Limit build to the current CUDA SM's from device
-    export FLASH_ATTN_CUDA_ARCHS=$CUDA_ARCH_LIST
-else
-    export MAX_JOBS=12
-fi
 
+export FLASH_ATTN_CUDA_ARCHS=87
 export NVCC_THREADS=1
 export CMAKE_BUILD_PARALLEL_LEVEL=$MAX_JOBS
 echo "Building with MAX_JOBS=$MAX_JOBS and CMAKE_BUILD_PARALLEL_LEVEL=$CMAKE_BUILD_PARALLEL_LEVEL"
