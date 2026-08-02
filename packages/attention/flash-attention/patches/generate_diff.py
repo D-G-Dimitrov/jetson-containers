@@ -88,7 +88,7 @@ def modify_setup_py(original_content):
             '    """',
             "    Adds -gencode flags based on CUDA_ARCHITECTURES environment variable.",
             '    """',
-            "    for CUDA_ARCH in os.environ.get('CUDA_ARCHITECTURES', '80;87;90;').split(';'):",
+            "    for CUDA_ARCH in os.environ.get('CUDA_ARCHITECTURES', '87').split(';'):",
             "        if CUDA_ARCH.strip():",
             "            cc_flag += [\"-gencode\", f\"arch=compute_{CUDA_ARCH.strip()},code=sm_{CUDA_ARCH.strip()}\"]",
             "    return cc_flag",
