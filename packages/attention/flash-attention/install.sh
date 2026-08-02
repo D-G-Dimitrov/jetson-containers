@@ -6,5 +6,5 @@ if [ "$FORCE_BUILD" == "on" ]; then
 	exit 1
 fi
 
-uv pip install flash-attn==${FLASH_ATTENTION_VERSION}
+uv pip install --index-strategy unsafe-best-match flash-attn==${FLASH_ATTENTION_VERSION}
 uv pip show flash-attn && python3 -c 'import flash_attn'
