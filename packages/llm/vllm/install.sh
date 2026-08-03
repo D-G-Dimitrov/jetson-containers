@@ -27,9 +27,7 @@ uv pip install \
 	ray[cgraph,default] \
 	fastsafetensors
 
-pip install \
-  --extra-index-url https://pypi.org/simple \
-  --extra-index-url https://flashinfer.ai/whl/ \
+uv pip install --index-strategy unsafe-best-match \
   "flashinfer-cubin==0.6.15.post1" \
   vllm=="${VLLM_VERSION}.${CUDA_SUFFIX}"
 
