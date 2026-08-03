@@ -17,6 +17,12 @@ git status
 sed -i '/torch/d' pyproject.toml
 sed -i '/triton/d' pyproject.toml
 
+# Remove version constraints for tilelang and apache-tvm-ffi in pyproject.toml
+#sed -i \
+#  -e 's|^tilelang.*|tilelang|g' \
+#  -e 's|^apache-tvm-ffi.*|apache-tvm-ffi|g' \
+#  pyproject.toml
+
 MAX_JOBS="$(nproc)" \
 MAMBA_FORCE_BUILD="TRUE" \
 MAMBA_SKIP_CUDA_BUILD="FALSE" \
