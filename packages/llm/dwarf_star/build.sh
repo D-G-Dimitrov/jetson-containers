@@ -13,8 +13,8 @@ cd ${SOURCE_DIR}
 # ds4's Makefile expects a single CUDA_ARCH like sm_87 or native
 CUDA_ARCH=$(echo "${CUDA_ARCHITECTURES}" | cut -d';' -f1 | sed 's/\.//' | sed 's/^/sm_/')
 
-# Build CUDA binaries
-make cuda CUDA_ARCH=${CUDA_ARCH}
+# Build CUDA binaries with parallel compilation
+make -j $(nproc) cuda CUDA_ARCH=${CUDA_ARCH}
 
 # Install binaries to /usr/local/bin
 cp -v ds4 ds4-server ds4-bench ds4-eval ds4-agent /usr/local/bin/
