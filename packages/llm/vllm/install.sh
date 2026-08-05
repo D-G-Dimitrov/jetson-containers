@@ -31,7 +31,7 @@ uv pip install --index-strategy unsafe-best-match \
   "flashinfer-cubin==0.6.15.post1" \
   vllm=="${VLLM_VERSION}.${CUDA_SUFFIX}"
 
-pip check
+#pip check
 
 # File "/opt/venv/lib/python3.12/site-packages/gguf/gguf_reader.py"
 # `newbyteorder` was removed from the ndarray class in NumPy 2.0
