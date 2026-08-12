@@ -62,7 +62,7 @@ uv build --wheel --no-build-isolation -v --out-dir /opt/vllm/wheels .
 pip install \
   --extra-index-url https://pypi.org/simple \
   --extra-index-url https://flashinfer.ai/whl/ \
-  "flashinfer-cubin==0.6.15.post1" \
+  "flashinfer-cubin==0.6.16.post3" \
   /opt/vllm/wheels/vllm*.whl
 
 cd /opt/vllm
