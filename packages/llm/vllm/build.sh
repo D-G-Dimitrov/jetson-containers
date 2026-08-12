@@ -2,12 +2,21 @@
 set -ex
 
 uv pip install pre-commit nanobind==2.5.0
-# Clone the repository if it doesn't exist
-git clone --branch=${VLLM_BRANCH} --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm ||
-git clone --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm
+if [ "$RE_USE_CACHED_BUILD" == "off" ]; then
+    # Clone the repository if it doesn't exist
+    git clone --branch=${VLLM_BRANCH} --recursive --depth=1 https://github.com/vllm-projectvllm /opt/vllm ||
+    git clone --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm
+fi
 
 cd /opt/vllm
 env
+
+if [ "$RE_USE_CACHED_BUILD" == "on" ]; then
+    rm -rf wheels/vllm-*.whl
+    git restore .
+    git fetch --depth 1 origin refs/tags/${VLLM_BRANCH}:refs/tags/${VLLM_BRANCH}
+    git checkout ${VLLM_BRANCH}
+fi
 
 python3 /tmp/vllm/generate_diff.py
 git apply /tmp/vllm/patch.diff

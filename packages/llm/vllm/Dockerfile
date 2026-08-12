@@ -16,7 +16,8 @@ ARG VLLM_VERSION \
     CUDAARCHS \
     CUDA_SUFFIX \
     IS_SBSA \
-    FORCE_BUILD=off
+    FORCE_BUILD=off \
+    RE_USE_CACHED_BUILD=off
 
 COPY build.sh install.sh patches /tmp/vllm/
 
