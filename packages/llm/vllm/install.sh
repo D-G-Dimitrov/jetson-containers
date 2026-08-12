@@ -28,7 +28,7 @@ uv pip install \
 	fastsafetensors
 
 uv pip install --index-strategy unsafe-best-match \
-  "flashinfer-cubin==0.6.15.post1" \
+  "flashinfer-cubin==0.6.16.post3" \
   vllm=="${VLLM_VERSION}.${CUDA_SUFFIX}"
 
 #pip check
