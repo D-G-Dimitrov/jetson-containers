@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -ex
 
+# Add missing dependencies for vLLM build
+apt-get update && apt-get install -y protobuf-compiler
+
 uv pip install pre-commit nanobind==2.5.0
 if [ "$RE_USE_CACHED_BUILD" == "off" ]; then
     # Clone the repository if it doesn't exist
