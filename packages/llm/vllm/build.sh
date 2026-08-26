@@ -7,7 +7,7 @@ apt-get update && apt-get install -y protobuf-compiler
 uv pip install pre-commit nanobind==2.5.0
 if [ "$RE_USE_CACHED_BUILD" == "off" ]; then
     # Clone the repository if it doesn't exist
-    git clone --branch=${VLLM_BRANCH} --recursive --depth=1 https://github.com/vllm-projectvllm /opt/vllm ||
+    git clone --branch=${VLLM_BRANCH} --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm ||
     git clone --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm
 fi
 
