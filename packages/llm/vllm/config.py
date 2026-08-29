@@ -1,5 +1,3 @@
-from huggingface_hub.cli import repo
-
 from jetson_containers import IS_SBSA, update_dependencies, cuda_short_version
 
 
