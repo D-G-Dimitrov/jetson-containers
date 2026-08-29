@@ -28,7 +28,6 @@ uv pip install \
 	fastsafetensors
 
 uv pip install --index-strategy unsafe-best-match \
-  "flashinfer-cubin==0.6.16.post3" \
   vllm=="${VLLM_VERSION}"
 
 #pip check

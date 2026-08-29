@@ -1,7 +1,9 @@
+from huggingface_hub.cli import repo
+
 from jetson_containers import IS_SBSA, update_dependencies, cuda_short_version
 
 
-def vllm(version, branch=None, requires=None, default=False, depends=None):
+def vllm(version, repo=None, branch=None, requires=None, default=False, depends=None):
     pkg = package.copy()
 
     if requires:
@@ -10,11 +12,12 @@ def vllm(version, branch=None, requires=None, default=False, depends=None):
     if depends:
         pkg['depends'] = update_dependencies(pkg['depends'], depends)
 
-    suffix = branch if branch else version
+    suffix = version if version else branch
     branch = branch if branch else f'v{version}'
 
     pkg['name'] = f'vllm:{suffix}'
     pkg['build_args'] = {
+        'VLLM_REPO': repo if repo else 'https://github.com/vllm-project/vllm.git',
         'VLLM_VERSION': version,
         'VLLM_BRANCH': branch,
         'IS_SBSA': IS_SBSA,
@@ -38,5 +41,8 @@ package = [
     vllm('0.25.0', depends=['flashinfer'], default=False),
     vllm('0.26.0', depends=['flashinfer'], default=False),
     vllm('0.27.0.dev0', depends=['flashinfer'], default=False),
-    vllm('0.27.1', depends=['flashinfer'], default=True),
+    vllm('0.27.1', depends=['flashinfer'], default=False),
+    vllm('0.28.0', depends=['flashinfer'], default=True),
+    vllm('0.10.0.wtdcode', repo='https://github.com/wtdcode/vllm-backport.git', branch='v0.10.0',  depends=['flashinfer'], default=False),
+
 ]

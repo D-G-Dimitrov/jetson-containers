@@ -7,8 +7,8 @@ apt-get update && apt-get install -y protobuf-compiler
 uv pip install pre-commit nanobind==2.5.0
 if [ "$RE_USE_CACHED_BUILD" == "off" ]; then
     # Clone the repository if it doesn't exist
-    git clone --branch=${VLLM_BRANCH} --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm ||
-    git clone --recursive --depth=1 https://github.com/vllm-project/vllm /opt/vllm
+    git clone --branch=${VLLM_BRANCH} --recursive --depth=1 ${VLLM_REPO} /opt/vllm ||
+    git clone --recursive --depth=1 ${VLLM_REPO} /opt/vllm
 fi
 
 cd /opt/vllm
@@ -23,6 +23,10 @@ fi
 
 python3 /tmp/vllm/generate_diff.py
 git apply /tmp/vllm/patch.diff
+
+if [ "$VLLM_VERSION" == "0.28.0" ]; then
+  git apply /tmp/vllm/fix_v0.28.0.patch
+fi
 
 # Not needed in JP7.2
 #sed -i \
@@ -58,6 +62,8 @@ else
 fi
 
 pip install --extra-index-url https://pypi.org/simple --extra-index-url https://flashinfer.ai/whl/  -r "${BUILD_REQUIREMENTS_FILE}" -v
+pip install --extra-index-url https://pypi.org/simple --extra-index-url https://flashinfer.ai/whl/  -r "requirements/cuda.txt" -v
+
 python3 -m setuptools_scm
 
 ARCH=$(uname -i)
@@ -74,7 +80,6 @@ uv build --wheel --no-build-isolation -v --out-dir /opt/vllm/wheels .
 pip install \
   --extra-index-url https://pypi.org/simple \
   --extra-index-url https://flashinfer.ai/whl/ \
-  "flashinfer-cubin==0.6.16.post3" \
   /opt/vllm/wheels/vllm*.whl
 
 cd /opt/vllm
