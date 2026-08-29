@@ -13,7 +13,7 @@ def vllm(version, repo=None, branch=None, requires=None, default=False, depends=
     suffix = version if version else branch
     branch = branch if branch else f'v{version}'
 
-    pkg['name'] = f'vllm:{suffix}'
+    pkg['name'] = f'vllm:{suffix.replace("+", ".")}'
     pkg['build_args'] = {
         'VLLM_REPO': repo if repo else 'https://github.com/vllm-project/vllm.git',
         'VLLM_VERSION': version,
@@ -23,7 +23,7 @@ def vllm(version, repo=None, branch=None, requires=None, default=False, depends=
     }
 
     builder = pkg.copy()
-    builder['name'] = f'vllm:{suffix}-builder'
+    builder['name'] = f'vllm:{suffix.replace("+", ".")}-builder'
     builder['build_args'] = {**pkg['build_args'], **{'FORCE_BUILD': 'on'}}
 
     if default:
