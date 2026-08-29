@@ -6,6 +6,7 @@ apt-get update && apt-get install -y protobuf-compiler
 
 uv pip install pre-commit nanobind==2.5.0
 if [ "$RE_USE_CACHED_BUILD" == "off" ]; then
+    uv pip uninstall vllm
     rm -rf cd /opt/vllm
     # Clone the repository if it doesn't exist
     git clone --branch=${VLLM_BRANCH} --recursive --depth=1 ${VLLM_REPO} /opt/vllm ||
