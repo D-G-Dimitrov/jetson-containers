@@ -17,10 +17,12 @@ cd /opt/vllm
 env
 
 if [ "$RE_USE_CACHED_BUILD" == "on" ]; then
+    uv pip uninstall vllm
     rm -rf wheels/vllm-*.whl
     git restore .
     git fetch --depth 1 origin refs/tags/${VLLM_BRANCH}:refs/tags/${VLLM_BRANCH}
     git checkout ${VLLM_BRANCH}
+    rm -rf .deps/vllm-flash-attn-subbuild
 fi
 
 python3 /tmp/vllm/generate_diff.py
