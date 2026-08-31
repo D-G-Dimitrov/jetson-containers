@@ -41,6 +41,6 @@ package = [
     vllm('0.27.0.dev0', depends=['flashinfer'], default=False),
     vllm('0.27.1', depends=['flashinfer'], default=False),
     vllm('0.28.0', depends=['flashinfer'], default=True),
-    vllm('0.10.0+wtdcode', repo='https://github.com/wtdcode/vllm-backport.git', branch='v0.10.0',  depends=['flashinfer'], default=False),
+    vllm('0.11.1+wtdcode', repo='https://github.com/wtdcode/vllm-backport.git', branch='v0.11.1',  depends=['flashinfer'], default=False),
 
 ]
