@@ -27,6 +27,16 @@ uv pip install \
 	ray[cgraph,default] \
 	fastsafetensors
 
+if [[ "$VLLM_VERSION" == 0.13.* ]]; then
+  uv pip install --index-strategy unsafe-best-match \
+    "flashinfer-cubin==0.6.18.post1"
+elif [[ "$VLLM_VERSION" == 0.29.* ]]; then
+  uv pip install --index-strategy unsafe-best-match \
+    "flashinfer-cubin==0.6.18"
+fi
+
+pip install -U transformers
+
 uv pip install --index-strategy unsafe-best-match \
   vllm=="${VLLM_VERSION}"
 
