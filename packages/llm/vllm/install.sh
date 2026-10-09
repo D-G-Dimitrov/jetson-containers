@@ -36,6 +36,9 @@ elif [[ "$VLLM_VERSION" == 0.29.* ]]; then
 elif [[ "$VLLM_VERSION" == 0.30.* ]]; then
   uv pip install --index-strategy unsafe-best-match \
     "flashinfer-cubin==0.6.18.post1"
+elif [[ "$VLLM_VERSION" == 0.31.* ]]; then
+  uv pip install --index-strategy unsafe-best-match \
+    "flashinfer-cubin==0.7.0.post1"
 fi
 
 pip install -U transformers
