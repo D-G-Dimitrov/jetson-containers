@@ -43,10 +43,6 @@ uv pip install -r requirements/build.txt
 python3 setup.py bdist_wheel --dist-dir=dist_lmcache
 uv pip install --no-deps ./dist_lmcache/*.whl
 
-# Small runtime deps not declared by the trimmed cu12 wheel metadata and not
-# already present in the vllm venv.
-uv pip install aiofile aiofiles sortedcontainers httptools redis nvidia-ml-py
-
 # Sanity check: package + compiled extensions import
 python3 -c "
 import lmcache
