@@ -13,8 +13,8 @@ FROM ${BASE_IMAGE}
 ARG LMCACHE_VERSION \
     LMCACHE_BRANCH \
     LMCACHE_REPO \
-    FORCE_BUILD=off \
-
+    RE_USE_CACHED_BUILD=off \
+    FORCE_BUILD=off
 
 COPY build.sh install.sh /tmp/lmcache/
 
