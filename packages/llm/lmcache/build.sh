@@ -32,7 +32,7 @@ sed -i '/-r nixl.txt/d' requirements/cuda.txt
 export CUDA_HOME=/usr/local/cuda
 export PATH="${CUDA_HOME}/bin:$PATH"
 export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-8.7}"   # Orin AGX = sm_87
-export LMCACHE_CUDA_MAJOR="${LMCACHE_CUDA_MAJOR:-12}"        # cu12.9 / JetPack r36.4
+export LMCACHE_CUDA_MAJOR="${LMCACHE_CUDA_MAJOR:-13}"        # CUDA 13.x (cu132 / JetPack r39.2)
 export SETUPTOOLS_SCM_PRETEND_VERSION="${LMCACHE_VERSION}"   # deterministic wheel version
 
 # Build dependencies (ninja, packaging, setuptools, setuptools_scm, wheel)
