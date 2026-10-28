@@ -20,7 +20,8 @@ ARG VLLM_VERSION \
     FORCE_BUILD=off \
     RE_USE_CACHED_BUILD=off
 
-ENV DO_NOT_TRACK=1
+ENV DO_NOT_TRACK=1 \
+    VLLM_NO_USAGE_STATS=1 
 
 COPY build.sh install.sh patches /tmp/vllm/
 
