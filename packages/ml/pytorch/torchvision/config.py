@@ -46,6 +46,7 @@ package = [
     torchvision('0.26.0', pytorch='2.11', requires='>=36'),
     torchvision('0.27.0', pytorch='2.12', requires='>=36'),
     torchvision('0.28.0', pytorch='2.13', requires='>=36'),
+    torchvision('0.29.0', pytorch='2.14', requires='>=36'),
 
     # JetPack 4
     torchvision('0.11.1', pytorch='1.10', requires='==32.*'),
