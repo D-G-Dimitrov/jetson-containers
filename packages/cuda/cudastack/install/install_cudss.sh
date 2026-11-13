@@ -19,17 +19,39 @@ wget $WGET_FLAGS \
 dpkg -i cuda-keyring.deb
 apt-get update
 
-# Find exact apt version matching CUDSS_VERSION and pin to it
-CUDSS_APT_VER=$(apt-cache madison cudss 2>/dev/null \
-    | awk -v ver="${CUDSS_VERSION}" '$3 ~ ver {gsub(/^ +| +$/, "", $3); print $3; exit}')
+# The plain 'cudss' meta-package does NOT control which runtime gets installed:
+# apt resolves libcudss0/libcudss1 independently, so `apt-get install cudss=<ver>`
+# can silently install a different major than requested. Install the newest
+# cuDSS runtime + dev for the active CUDA major explicitly, preferring the
+# current 1.x line and falling back to 0.x where 1.x is not published yet.
+CUDA_MAJOR=$(nvcc --version 2>/dev/null | sed -n 's/.*release \([0-9][0-9]*\).*/\1/p')
+: "${CUDA_MAJOR:=${CUDA_VERSION_MAJOR:-13}}"
 
-if [ -n "${CUDSS_APT_VER}" ]; then
-    echo "Pinning cuDSS to version: ${CUDSS_APT_VER}"
-    apt-get install -y --no-install-recommends "cudss=${CUDSS_APT_VER}"
-else
-    echo "Exact version ${CUDSS_VERSION} not found in repo, installing latest cudss"
-    apt-get install -y --no-install-recommends cudss
+PKG_RT="libcudss1-cuda-${CUDA_MAJOR}"
+PKG_DEV="libcudss1-dev-cuda-${CUDA_MAJOR}"
+
+if ! apt-cache show "${PKG_RT}" >/dev/null 2>&1; then
+    echo "${PKG_RT} not available, falling back to the 0.x line"
+    PKG_RT="libcudss0-cuda-${CUDA_MAJOR}"
+    PKG_DEV="libcudss0-dev-cuda-${CUDA_MAJOR}"
 fi
+
+echo "Installing ${PKG_RT} ${PKG_DEV}"
+apt-get install -y --no-install-recommends "${PKG_RT}" "${PKG_DEV}"
+
+# cuDSS deb packages (both 0.x and 1.x) install everything under a CUDA-major
+# subdir (e.g. /usr/lib/aarch64-linux-gnu/libcudss/13/) that is NOT on the
+# default linker or loader search path. Expose the libraries at the top level
+# so both `-lcudss` linking and runtime loading work. No-op when the libraries
+# already land at the top level.
+CUDSS_VERDIR="$(dirname "$(find /usr/lib/aarch64-linux-gnu -path '*libcudss/*' -name 'libcudss.so.*' 2>/dev/null | head -n1)")"
+if [ -n "${CUDSS_VERDIR}" ] && [ -d "${CUDSS_VERDIR}" ]; then
+    echo "Exposing cuDSS libraries from ${CUDSS_VERDIR}"
+    echo "${CUDSS_VERDIR}" > /etc/ld.so.conf.d/cudss.conf
+    ln -sf "${CUDSS_VERDIR}"/libcudss.so* /usr/lib/aarch64-linux-gnu/ 2>/dev/null || true
+fi
+
+ldconfig
 
 # Remove cuda-keyring to prevent the global NVIDIA repo from propagating
 # to subsequent build layers (preserves version control of installed packages)

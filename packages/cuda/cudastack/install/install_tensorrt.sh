@@ -22,10 +22,8 @@ if [ "${TENSORRT_URL##*.}" = "deb" ]; then
     # Install the repository package
     dpkg -i *.deb
 
-    # Copy keyring if it exists
-    if [ -d /var/nv-tensorrt-local-repo-* ]; then
-        cp /var/nv-tensorrt-local-repo-*/nv-tensorrt-*-keyring.gpg /usr/share/keyrings/ 2>/dev/null || true
-    fi
+    # Copy keyring if it exists (glob matches nothing -> cp fails, swallowed)
+    cp /var/nv-tensorrt-local-repo-*/nv-tensorrt-*-keyring.gpg /usr/share/keyrings/ 2>/dev/null || true
 
     # Update and install TensorRT packages
     apt-get update
@@ -77,13 +75,32 @@ elif [ "${TENSORRT_URL%.tar.gz}" != "$TENSORRT_URL" ] || [ "${TENSORRT_URL%.tgz}
     mkdir -p /usr/include
     cp -r include/* /usr/include/ 2>/dev/null || true
 
-    # Install Python bindings if they exist
+    # Install Python bindings if they exist.
+    # TensorRT ships them as wheels, one per supported Python version (e.g.
+    # tensorrt-10.16.1.11-cp312-none-linux_aarch64.whl). The base image has no
+    # pip, so extract the wheel matching this interpreter directly into the
+    # site dirs (the wheel is self-contained: it bundles tensorrt.so). A plain
+    # `cp -r python/*` just drops dead .whl files that import cannot see.
     if [ -d "python" ]; then
         echo "Installing Python bindings..."
-        PYTHON_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-        PYTHON_SITE="/usr/local/lib/python${PYTHON_VERSION}/dist-packages"
-        mkdir -p "${PYTHON_SITE}"
-        cp -r python/* "${PYTHON_SITE}/" 2>/dev/null || true
+        PY_VER="cp$(python3 -c 'import sys; print(f"{sys.version_info.major}{sys.version_info.minor}")')"
+        PY_MINOR="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+        INSTALLED=0
+        for WHEEL in python/tensorrt-*-${PY_VER}-*.whl; do
+            [ -f "${WHEEL}" ] || continue
+            for SITE in "/usr/local/lib/python${PY_MINOR}/dist-packages" "/usr/local/lib/python${PY_MINOR}/site-packages"; do
+                echo "Installing ${WHEEL} -> ${SITE}"
+                mkdir -p "${SITE}"
+                python3 -m zipfile -e "${WHEEL}" "${SITE}"
+            done
+            INSTALLED=1
+        done
+        if [ "${INSTALLED}" = "0" ]; then
+            echo "No tensorrt wheel for ${PY_VER}; copying python/ contents as fallback"
+            PYTHON_SITE="/usr/local/lib/python${PY_MINOR}/dist-packages"
+            mkdir -p "${PYTHON_SITE}"
+            cp -r python/* "${PYTHON_SITE}/" 2>/dev/null || true
+        fi
     fi
 
     # Install bin tools if they exist
