@@ -55,6 +55,9 @@ uv pip install --index-strategy unsafe-best-match \
 
 if [[ "$VLLM_VERSION" == 0.33.* && -n "$TORCHAUDIO_PRE" ]]; then
 	uv pip install --force-reinstall "torchaudio==${TORCHAUDIO_PRE}"
+	# vLLM 0.33.0 also pins setuptools<81,>=78.1.1 for python>3.11; other
+	# deps (ray, etc.) can pull a newer one that vLLM rejects at runtime.
+	uv pip install "setuptools>=78.1.1,<81.0.0"
 fi
 
 # Prebuilt wheels are compiled against a specific PyTorch/CUDA version and can
