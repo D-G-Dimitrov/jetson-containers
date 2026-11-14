@@ -14,27 +14,51 @@ import sys
 import time
 import traceback
 from packaging.version import Version
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any, Union, Optional
 
 import logging
 from .l4t_version import (
-    L4T_VERSION, LSB_RELEASES, IS_TEGRA, IS_SBSA, l4t_version_from_tag, l4t_version_compatible,
-    get_l4t_base, get_cuda_arch, get_cuda_version, get_jetpack_version, get_lsb_release
+    L4T_VERSION,
+    LSB_RELEASES,
+    IS_TEGRA,
+    IS_SBSA,
+    l4t_version_from_tag,
+    l4t_version_compatible,
+    get_l4t_base,
+    get_cuda_arch,
+    get_cuda_version,
+    get_jetpack_version,
+    get_lsb_release,
 )
 from .logging import (
-    get_log_dir, log_status, log_success, log_status, log_warning, log_debug,
-    log_block, log_info, print_log, pprint_debug, colorize
+    get_log_dir,
+    log_status,
+    log_success,
+    log_status,
+    log_warning,
+    log_debug,
+    log_block,
+    log_info,
+    print_log,
+    pprint_debug,
+    colorize,
 )
 from .packages import find_package, find_packages, resolve_dependencies, validate_dict
 from .utils import (
-    split_container_name, query_yes_no, needs_sudo, sudo_prefix,
-    get_env, get_dir, get_repo_dir
+    split_container_name,
+    query_yes_no,
+    needs_sudo,
+    sudo_prefix,
+    get_env,
+    get_dir,
+    get_repo_dir,
 )
 
-_NEWLINE_=" \\\n"  # used when building command strings
+_NEWLINE_ = " \\\n"  # used when building command strings
 _DEFAULT_BUILDKIT_DEVICE = 'nvidia.com/gpu=all'
 _DEFAULT_CCACHE_DIR = '/root/.cache/ccache'
 _DEFAULT_CCACHE_MAXSIZE = '20G'
+
 
 def format_time(seconds):
     """Format time in hh:mm:ss format"""
@@ -42,6 +66,7 @@ def format_time(seconds):
     minutes = int((seconds % 3600) // 60)
     seconds = int(seconds % 60)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
 
 def format_time_minutes(seconds):
     """Format time in mm:ss format, without padding for minutes over 99"""
@@ -51,6 +76,7 @@ def format_time_minutes(seconds):
         return f"{minutes:02d}m{seconds:02d}s"
     else:
         return f"{minutes}m{seconds:02d}s"
+
 
 class BuildTimer:
     def __init__(self):
@@ -83,7 +109,11 @@ def _normalize_buildkit_device(device):
     if device.lower() in ('0', 'false', 'no', 'none', 'off'):
         return ''
 
-    return _DEFAULT_BUILDKIT_DEVICE if device.lower() in ('1', 'true', 'yes', 'on') else device
+    return (
+        _DEFAULT_BUILDKIT_DEVICE
+        if device.lower() in ('1', 'true', 'yes', 'on')
+        else device
+    )
 
 
 def _dockerfile_requests_buildkit_device(dockerfile):
@@ -91,22 +121,35 @@ def _dockerfile_requests_buildkit_device(dockerfile):
     Returns True if a Dockerfile already contains BuildKit RUN --device usage.
     """
     with open(dockerfile, 'r') as file:
-        return re.search(r'^\s*RUN\s+.*--device(?:=|\s)', file.read(), flags=re.MULTILINE) is not None
+        return (
+            re.search(r'^\s*RUN\s+.*--device(?:=|\s)', file.read(), flags=re.MULTILINE)
+            is not None
+        )
 
 
 def _prepare_buildkit_dockerfile(
-        dockerfile, output_path, device='', ccache=False,
-        ccache_dir=_DEFAULT_CCACHE_DIR, ccache_maxsize=_DEFAULT_CCACHE_MAXSIZE
-    ):
+    dockerfile,
+    output_path,
+    device='',
+    ccache=False,
+    ccache_dir=_DEFAULT_CCACHE_DIR,
+    ccache_maxsize=_DEFAULT_CCACHE_MAXSIZE,
+    build_cache='',
+):
     """
     Generate a temporary Dockerfile that enables BuildKit frontend features and
     adds requested RUN options like CDI devices and persistent ccache storage.
+
+    build_cache (str) -- an optional path mounted as a persistent BuildKit cache
+        for the final stage (exposed to RUN steps as $BUILD_CACHE_DIR).  Useful
+        for caching large downloads (e.g. CUDA .deb files) across layer rebuilds.
     """
     device = _normalize_buildkit_device(device)
     ccache_dir = ccache_dir or _DEFAULT_CCACHE_DIR
     ccache_maxsize = ccache_maxsize or _DEFAULT_CCACHE_MAXSIZE
+    build_cache = build_cache.strip() if isinstance(build_cache, str) else ''
 
-    if not device and not ccache:
+    if not device and not ccache and not build_cache:
         return dockerfile
 
     with open(dockerfile, 'r') as file:
@@ -135,6 +178,7 @@ def _prepare_buildkit_dockerfile(
         'ccache --set-config=max_size="${CCACHE_MAXSIZE:-20G}" || true; '
         'fi; '
     )
+    build_cache_env = f'ENV BUILD_CACHE_DIR={build_cache}\n' if build_cache else ''
 
     def split_run_options(command):
         options = []
@@ -171,6 +215,8 @@ def _prepare_buildkit_dockerfile(
             output_lines.append(line)
             if ccache and in_final_stage:
                 output_lines.append(env_line)
+            if build_cache and in_final_stage:
+                output_lines.append(build_cache_env)
         elif match and in_final_stage:
             run_options = []
 
@@ -179,12 +225,29 @@ def _prepare_buildkit_dockerfile(
 
             if ccache:
                 if f'target={ccache_dir}' not in match.group(2):
-                    run_options.append(f'--mount=type=cache,target={ccache_dir},sharing=locked')
+                    run_options.append(
+                        f'--mount=type=cache,target={ccache_dir},sharing=locked'
+                    )
 
-            if run_options or (ccache and not match.group(2).lstrip().startswith('[')):
-                run_indent, existing_options, run_command = split_run_options(match.group(2))
+            if build_cache:
+                if f'target={build_cache}' not in match.group(2):
+                    # explicit stable id so the cache survives exec cache-key changes
+                    # between runs (otherwise a fresh empty mount is created each time)
+                    cache_id = build_cache.strip('/').replace('/', '-')
+                    run_options.append(
+                        f'--mount=type=cache,target={build_cache},id={cache_id},sharing=locked'
+                    )
+
+            if run_options or (
+                (ccache or build_cache) and not match.group(2).lstrip().startswith('[')
+            ):
+                run_indent, existing_options, run_command = split_run_options(
+                    match.group(2)
+                )
                 all_options = run_options + existing_options
-                run_prefix = ccache_prefix if ccache and not run_command.startswith('[') else ''
+                run_prefix = (
+                    ccache_prefix if ccache and not run_command.startswith('[') else ''
+                )
                 output_lines.append(
                     f"{match.group(1)}RUN {run_indent}{' '.join(all_options)} "
                     f"{run_prefix}{run_command}{newline}"
@@ -199,17 +262,29 @@ def _prepare_buildkit_dockerfile(
 
     return output_path
 
+
 def build_container(
-        name: str='', packages: list=[], base: str=get_l4t_base(),
-        buildkit: bool=True, buildkit_device: str='', buildkit_progress: str='tty',
-        cache_from: list=None, cache_to: list=None,
-        ccache: bool=True,
-        ccache_dir: str=_DEFAULT_CCACHE_DIR, ccache_maxsize: str=_DEFAULT_CCACHE_MAXSIZE,
-        build_flags: str='',
-        build_args: dict=None, simulate: bool=False,
-        skip_packages: list=[], skip_tests: list=[], test_only: list=[],
-        push: str='', no_github_api=False, **kwargs
-    ):
+    name: str = '',
+    packages: list = [],
+    base: str = get_l4t_base(),
+    buildkit: bool = True,
+    buildkit_device: str = '',
+    buildkit_progress: str = 'tty',
+    cache_from: Optional[List] = None,
+    cache_to: Optional[List] = None,
+    ccache: bool = True,
+    ccache_dir: str = _DEFAULT_CCACHE_DIR,
+    ccache_maxsize: str = _DEFAULT_CCACHE_MAXSIZE,
+    build_flags: str = '',
+    build_args: Optional[Dict] = None,
+    simulate: bool = False,
+    skip_packages: list = [],
+    skip_tests: list = [],
+    test_only: list = [],
+    push: str = '',
+    no_github_api=False,
+    **kwargs,
+):
     """
     Multi-stage container build that chains together selected packages into one container image.
     For example, `['pytorch', 'tensorflow']` would build a container that had both pytorch and tensorflow in it.
@@ -248,7 +323,7 @@ def build_container(
         if isinstance(packages, str):
             packages = [packages]
         elif validate_dict(packages):
-            packages = [packages['name']]
+            packages = [packages['name']]  # type: ignore[index]
         else:
             packages = packages.copy()
 
@@ -280,7 +355,9 @@ def build_container(
         if len(name) == 0:
             name = packages[-1]
             repo_name = packages[-1]
-        elif name.find(':') < 0 and name[-1] == '/':  # they gave a namespace to build under
+        elif (
+            name.find(':') < 0 and name[-1] == '/'
+        ):  # they gave a namespace to build under
             name += packages[-1]
             repo_name = packages[-1]
         else:
@@ -288,13 +365,17 @@ def build_container(
 
         # add prefix to tag
         last_pkg = find_package(packages[-1])
+        if last_pkg is None:
+            raise RuntimeError(
+                f"couldn't find package:  {packages[-1]}"
+            )  # pragma: no cover
         prefix = last_pkg.get('prefix', '')
         postfix = last_pkg.get('postfix', '')
         tag_idx = name.find(':')
 
         if prefix:
             if tag_idx >= 0:
-                name = name[:tag_idx+1] + prefix + '-' + name[tag_idx+1:]
+                name = name[: tag_idx + 1] + prefix + '-' + name[tag_idx + 1 :]
             else:
                 name = name + ':' + prefix
 
@@ -308,6 +389,8 @@ def build_container(
 
         # Add N-second countdown with BUILD_DELAY=N environment variable
         build_delay = get_env('BUILD_DELAY', default=0, type=int)
+        if build_delay is None:
+            build_delay = 0
 
         if build_delay > 0:
             log_info("Starting build in...")
@@ -324,12 +407,18 @@ def build_container(
         # build chain of all packages
         for idx, package in enumerate(packages):
             pkg = find_package(package)
+            if pkg is None:
+                raise RuntimeError(
+                    f"failed to find package '{package}'"
+                )  # pragma: no cover
             # tag this build stage with the sub-package
             container_name = f"{name}-{package.replace(':','_')}"
 
             # generate the logging file (without the extension)
-            log_file = os.path.join(get_log_dir('build'), f"{idx+1:02d}o{len(packages)}_{container_name.replace('/','_')}").replace(':','_')
-            jetpack_version = get_jetpack_version()
+            log_file = os.path.join(
+                get_log_dir('build'),
+                f"{idx+1:02d}o{len(packages)}_{container_name.replace('/','_')}",
+            ).replace(':', '_')
             if 'dockerfile' in pkg:
                 dockerfilepath = os.path.join(pkg['path'], pkg['dockerfile'])
 
@@ -337,9 +426,15 @@ def build_container(
                     with open(dockerfilepath, 'r') as fp:
                         data = fp.read()
                         if 'ADD https://api.github.com' in data:
-                            dockerfilepath_minus_github_api = os.path.join(pkg['path'], pkg['dockerfile'] + '.minus-github-api')
-                            os.system(f"cp {dockerfilepath} {dockerfilepath_minus_github_api}")
-                            os.system(f"sed 's|^ADD https://api.github.com|#[minus-github-api]ADD https://api.github.com|' -i {dockerfilepath_minus_github_api}")
+                            dockerfilepath_minus_github_api = os.path.join(
+                                pkg['path'], pkg['dockerfile'] + '.minus-github-api'
+                            )
+                            os.system(
+                                f"cp {dockerfilepath} {dockerfilepath_minus_github_api}"
+                            )
+                            os.system(
+                                f"sed 's|^ADD https://api.github.com|#[minus-github-api]ADD https://api.github.com|' -i {dockerfilepath_minus_github_api}"
+                            )
                             dockerfilepath = dockerfilepath_minus_github_api
 
                 # Check if SSH key is provided for SCP uploads - BuildKit/buildx is required for secret mounting
@@ -349,14 +444,25 @@ def build_container(
                 # Use buildx which always uses BuildKit and has better log size limit support
                 # Enable buildx if SSH key is provided (required for secrets) or user prefers it
                 user_buildkit = buildkit
-                active_buildkit_device = _normalize_buildkit_device(buildkit_device or pkg.get('buildkit_device', ''))
-                device_requested = bool(active_buildkit_device) or _dockerfile_requests_buildkit_device(dockerfilepath)
+                active_buildkit_device = _normalize_buildkit_device(
+                    buildkit_device or pkg.get('buildkit_device', '')
+                )
+                device_requested = bool(
+                    active_buildkit_device
+                ) or _dockerfile_requests_buildkit_device(dockerfilepath)
                 pkg_has_secrets = bool(pkg.get('secrets', []))
-                use_buildx = user_buildkit or scp_key_provided or bool(active_buildkit_device) or pkg_has_secrets
+                use_buildx = (
+                    user_buildkit
+                    or scp_key_provided
+                    or bool(active_buildkit_device)
+                    or pkg_has_secrets
+                )
 
                 # Set BuildKit log size limit (default 500MB, configurable via BUILDKIT_STEP_LOG_MAX_SIZE)
                 # Default Docker BuildKit limit is 2MiB which can clip large build outputs
-                buildkit_log_size = os.environ.get('BUILDKIT_STEP_LOG_MAX_SIZE', '524288000')  # 500MB default
+                buildkit_log_size = os.environ.get(
+                    'BUILDKIT_STEP_LOG_MAX_SIZE', '524288000'
+                )  # 500MB default
 
                 if use_buildx:
                     effective_buildkit_progress = buildkit_progress
@@ -365,9 +471,14 @@ def build_container(
 
                     # Use buildx with log size configuration
                     buildkit_env = f"DOCKER_BUILDKIT=1 BUILDKIT_STEP_LOG_MAX_SIZE={buildkit_log_size}"
-                    cmd = f"{sudo_prefix()}{buildkit_env} docker buildx build --network=host --shm-size=8g" + _NEWLINE_
+                    cmd = (
+                        f"{sudo_prefix()}{buildkit_env} docker buildx build --network=host --shm-size=8g"
+                        + _NEWLINE_
+                    )
                     cmd += f"  --progress={effective_buildkit_progress}" + _NEWLINE_
-                    cmd += f"  --load" + _NEWLINE_  # Load image into local Docker daemon
+                    cmd += (
+                        f"  --load" + _NEWLINE_
+                    )  # Load image into local Docker daemon
                     if device_requested:
                         cmd += f"  --allow device" + _NEWLINE_
                     for cache in cache_from:
@@ -378,17 +489,22 @@ def build_container(
                     # Fallback to regular docker build
                     effective_buildkit_progress = None
                     buildkit_env = f"DOCKER_BUILDKIT=0"
-                    cmd = f"{sudo_prefix()}{buildkit_env} docker build --network=host --shm-size=8g" + _NEWLINE_
+                    cmd = (
+                        f"{sudo_prefix()}{buildkit_env} docker build --network=host --shm-size=8g"
+                        + _NEWLINE_
+                    )
                 cmd += f"  --tag {container_name}" + _NEWLINE_
 
-                if active_buildkit_device or (ccache and use_buildx):
+                pkg_build_cache = pkg.get('build_cache', '') if pkg else ''
+                if active_buildkit_device or (ccache and use_buildx) or pkg_build_cache:
                     dockerfilepath = _prepare_buildkit_dockerfile(
                         dockerfilepath,
                         log_file + '.Dockerfile',
                         device=active_buildkit_device,
                         ccache=ccache and use_buildx,
                         ccache_dir=ccache_dir,
-                        ccache_maxsize=ccache_maxsize
+                        ccache_maxsize=ccache_maxsize,
+                        build_cache=pkg_build_cache,
                     )
 
                 cmd += f"  --file {dockerfilepath}" + _NEWLINE_
@@ -403,11 +519,18 @@ def build_container(
                     val = os.environ.get(arg_name, '')
                     if val:
                         cmd += f"  --build-arg {arg_name}={val}" + _NEWLINE_
-                if use_buildx and any(cache.startswith('type=inline') for cache in cache_to):
+                if use_buildx and any(
+                    cache.startswith('type=inline') for cache in cache_to
+                ):
                     cmd += f"  --build-arg BUILDKIT_INLINE_CACHE=1" + _NEWLINE_
 
                 if 'build_args' in pkg:
-                    cmd += ''.join([f"  --build-arg {key}=\"{value}\"" + _NEWLINE_ for key, value in pkg['build_args'].items()])
+                    cmd += ''.join(
+                        [
+                            f"  --build-arg {key}=\"{value}\"" + _NEWLINE_
+                            for key, value in pkg['build_args'].items()
+                        ]
+                    )
 
                 if build_args:
                     for key, value in build_args.items():
@@ -422,7 +545,9 @@ def build_container(
                 # Mount SSH key as BuildKit secret (available at /run/secrets/scp_upload_key
                 # during RUN commands, never persisted in image layers)
                 if scp_key_provided:
-                    cmd += f"  --secret id=scp_upload_key,src={scp_upload_key}" + _NEWLINE_
+                    cmd += (
+                        f"  --secret id=scp_upload_key,src={scp_upload_key}" + _NEWLINE_
+                    )
 
                 # Mount package-declared build secrets.  Each entry in the package's
                 # 'secrets' list maps to a JETSON_SECRET_<NAME> env var that must
@@ -435,7 +560,9 @@ def build_container(
                     env_key = f"JETSON_SECRET_{secret_name.upper().replace('-', '_')}"
                     secret_file = os.environ.get(env_key, '')
                     if secret_file and os.path.isfile(secret_file):
-                        cmd += f"  --secret id={secret_name},src={secret_file}" + _NEWLINE_
+                        cmd += (
+                            f"  --secret id={secret_name},src={secret_file}" + _NEWLINE_
+                        )
                     else:
                         log_warning(
                             f"Package '{package}' declares secret '{secret_name}' but "
@@ -447,7 +574,9 @@ def build_container(
                 log_block(f"<b>> BUILDING  {container_name}</b>", f"<b>{cmd}</b>")
 
                 # Calculate spaces needed to align time to right edge
-                status_text = f"[{idx+1}/{len(packages)}] Building {package} ({container_name})"
+                status_text = (
+                    f"[{idx+1}/{len(packages)}] Building {package} ({container_name})"
+                )
                 current_time = datetime.datetime.now().strftime("%H:%M:%S")
                 time_text = f"{idx} stages completed in {format_time_minutes(timer.get_elapsed())} at {current_time}"
                 spaces_needed = terminal.columns - len(status_text) - len(time_text)
@@ -463,24 +592,36 @@ def build_container(
                         # provides a pseudo-terminal while still saving output.
                         run_cmd = f"script -q -e -c {shlex.quote(run_cmd)} {shlex.quote(log_path)}"
                     else:
-                        log_warning("BuildKit tty progress requires the 'script' command - falling back to plain progress")
+                        log_warning(
+                            "BuildKit tty progress requires the 'script' command - falling back to plain progress"
+                        )
                         run_cmd = run_cmd.replace('--progress=tty', '--progress=plain')
                         run_cmd += f" 2>&1 | tee {shlex.quote(log_path)}; exit ${{PIPESTATUS[0]}}"
                 else:
                     run_cmd += f" 2>&1 | tee {shlex.quote(log_path)}; exit ${{PIPESTATUS[0]}}"  # https://stackoverflow.com/a/34604684
 
-                with open(log_file + '.sh', 'w') as cmd_file:   # save the build command to a shell script for future reference
+                with open(
+                    log_file + '.sh', 'w'
+                ) as cmd_file:  # save the build command to a shell script for future reference
                     cmd_file.write('#!/usr/bin/env bash\n\n')
                     cmd_file.write(run_cmd + '\n')
 
-                if not simulate:  # remove the line breaks that were added for readability, and set the shell to bash so we can use $PIPESTATUS
-                    status = subprocess.run(run_cmd, executable='/bin/bash', shell=True, check=True)
+                if (
+                    not simulate
+                ):  # remove the line breaks that were added for readability, and set the shell to bash so we can use $PIPESTATUS
+                    status = subprocess.run(
+                        run_cmd, executable='/bin/bash', shell=True, check=True
+                    )
                     print('')
             else:
                 tag_container(base, container_name, simulate)
 
             # run tests on the intermediate container
-            if package not in skip_tests and 'intermediate' not in skip_tests and 'all' not in skip_tests:
+            if (
+                package not in skip_tests
+                and 'intermediate' not in skip_tests
+                and 'all' not in skip_tests
+            ):
                 if len(test_only) == 0 or package in test_only:
                     status_text = f"[{idx+1}/{len(packages)}] Testing {package} ({container_name})"
                     current_time = datetime.datetime.now().strftime("%H:%M:%S")
@@ -495,13 +636,15 @@ def build_container(
             timer.next_stage()
 
         # tag the final container
-        tag_container(container_name, name, simulate)
+        tag_container(container_name, name, simulate)  # type: ignore[possibly-unbound]
 
         # re-run tests on final container
         for idx, package in enumerate(packages):
             if package not in skip_tests and 'all' not in skip_tests:
                 if len(test_only) == 0 or package in test_only:
-                    status_text = f"[{idx+1}/{len(packages)}] Testing {package} ({name})"
+                    status_text = (
+                        f"[{idx+1}/{len(packages)}] Testing {package} ({name})"
+                    )
                     current_time = datetime.datetime.now().strftime("%H:%M:%S")
                     time_text = f"{idx} stages completed in {format_time_minutes(timer.get_elapsed())} at {current_time}"
                     spaces_needed = terminal.columns - len(status_text) - len(time_text)
@@ -519,12 +662,22 @@ def build_container(
         build_end_time = time.time()
         total_duration = build_end_time - build_start_time
 
-        log_success('=====================================================================================')
-        log_success('=====================================================================================')
+        log_success(
+            '====================================================================================='
+        )
+        log_success(
+            '====================================================================================='
+        )
         log_success(f'✅ <b>`jetson-containers build {repo_name}`</b> ({name})')
-        log_success(f'⏱️  Total build time: {total_duration:.1f} seconds ({total_duration/60:.1f} minutes)')
-        log_success('=====================================================================================')
-        log_success('=====================================================================================')
+        log_success(
+            f'⏱️  Total build time: {total_duration:.1f} seconds ({total_duration/60:.1f} minutes)'
+        )
+        log_success(
+            '====================================================================================='
+        )
+        log_success(
+            '====================================================================================='
+        )
 
         return name
 
@@ -533,23 +686,34 @@ def build_container(
         build_end_time = time.time()
         total_duration = build_end_time - build_start_time
 
-        log_warning('=====================================================================================')
-        log_warning('=====================================================================================')
-        log_warning(f'💣 `jetson-containers build` failed after {total_duration:.1f} seconds ({total_duration/60:.1f} minutes)')
+        log_warning(
+            '====================================================================================='
+        )
+        log_warning(
+            '====================================================================================='
+        )
+        log_warning(
+            f'💣 `jetson-containers build` failed after {total_duration:.1f} seconds ({total_duration/60:.1f} minutes)'
+        )
         log_warning(f'Error: {str(e)}')
-        log_warning('=====================================================================================')
-        log_warning('=====================================================================================')
+        log_warning(
+            '====================================================================================='
+        )
+        log_warning(
+            '====================================================================================='
+        )
 
         # Re-raise the exception so the calling code knows it failed
         raise
 
+
 def build_containers(
-        name: str='',
-        packages: list=[],
-        skip_packages: list=[],
-        skip_errors: bool=False,
-        **kwargs
-    ):
+    name: str = '',
+    packages: list = [],
+    skip_packages: list = [],
+    skip_errors: bool = False,
+    **kwargs,
+):
     """
     Build separate container images for each of the requested packages (this is typically used in batch building jobs)
     For example, `['pytorch', 'tensorflow']` would build a pytorch container and a tensorflow container.
@@ -568,12 +732,12 @@ def build_containers(
     Returns:
       True if all containers built successfully, or False if there were any errors.
     """
-    status = {} # pass/fail result of each build
+    status = {}  # pass/fail result of each build
 
     if not packages:  # build everything (for testing)
         packages = sorted(find_packages([]).keys())
 
-    packages = find_packages(packages, skip=skip_packages)
+    packages = find_packages(packages, skip=skip_packages)  # type: ignore[assignment]
 
     for package in packages:
         try:
@@ -582,7 +746,7 @@ def build_containers(
             container_name = name
             print(error)
             if not skip_errors:
-                return False #raise error #sys.exit(os.EX_SOFTWARE)
+                return False  # raise error #sys.exit(os.EX_SOFTWARE)
             status[package] = (container_name, error)
         else:
             status[package] = (container_name, None)
@@ -651,20 +815,27 @@ def push_container(name, repository='', simulate=False):
     return name
 
 
-def test_container(name, package, simulate=False, build_idx=None):
+def test_container(name, package, simulate=False, build_idx: Optional[int] = None):
     """
     Run tests on a container
     """
     package = find_package(package)
+    if package is None:
+        raise RuntimeError(f"failed to find package '{package}'")  # pragma: no cover
 
     if 'test' not in package:
         return True
 
+    build_idx = build_idx if build_idx is not None else 0
+
     for idx, test in enumerate(package['test']):
         test_cmd = test.split(' ')  # test could be a command with arguments
-        test_exe = test_cmd[0]      # just get just the script/executable name
+        test_exe = test_cmd[0]  # just get just the script/executable name
         test_ext = os.path.splitext(test_exe)[1]
-        log_file = os.path.join(get_log_dir('test'), f"{build_idx+1:02d}-{idx+1}_{name.replace('/','_')}_{test_exe}").replace(':','_')
+        log_file = os.path.join(
+            get_log_dir('test'),
+            f"{build_idx+1:02d}-{idx+1}_{name.replace('/','_')}_{test_exe}",
+        ).replace(':', '_')
 
         cmd = f"{sudo_prefix()}docker run -t --rm --network=host --privileged --shm-size=8g "
 
@@ -695,14 +866,19 @@ def test_container(name, package, simulate=False, build_idx=None):
             cmd_file.write(cmd + '\n')
 
         if not simulate:  # TODO: return false on errors
-            status = subprocess.run(cmd.replace(_NEWLINE_, ' '), executable='/bin/bash', shell=True, check=True)
+            status = subprocess.run(
+                cmd.replace(_NEWLINE_, ' '),
+                executable='/bin/bash',
+                shell=True,
+                check=True,
+            )
             print('')
 
     return True
 
 
-_LOCAL_CACHE=[]
-_REGISTRY_CACHE=[]
+_LOCAL_CACHE = []
+_REGISTRY_CACHE = []
 
 
 def get_local_containers():
@@ -726,12 +902,19 @@ def get_local_containers():
     if needs_sudo():
         cmd = ["sudo"] + cmd
 
-    status = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                            #capture_output=True, universal_newlines=True,
-                            shell=False, check=True)
+    status = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        # capture_output=True, universal_newlines=True,
+        shell=False,
+        check=True,
+    )
 
-    _LOCAL_CACHE = [json.loads(txt.lstrip("'").rstrip("'"))
-        for txt in status.stdout.decode('ascii').splitlines()]
+    _LOCAL_CACHE = [
+        json.loads(txt.lstrip("'").rstrip("'"))
+        for txt in status.stdout.decode('ascii').splitlines()
+    ]
 
     pprint_debug(_LOCAL_CACHE)
 
@@ -753,20 +936,26 @@ def get_registry_containers(user='dustynv', use_cache=True, **kwargs):
     if len(_REGISTRY_CACHE) > 0:
         return _REGISTRY_CACHE
 
-    cache_path = kwargs.get('registry_cache',
-        os.environ.get('DOCKERHUB_CACHE',
-            os.path.join(get_dir('data'), 'containers.json')
-    ))
+    cache_path = kwargs.get(
+        'registry_cache',
+        os.environ.get(
+            'DOCKERHUB_CACHE', os.path.join(get_dir('data'), 'containers.json')
+        ),
+    )
 
-    has_cache_path = (cache_path != "0" and cache_path.lower() != "off")
-    cache_enabled = (use_cache and has_cache_path)
+    has_cache_path = cache_path != "0" and cache_path.lower() != "off"
+    cache_enabled = use_cache and has_cache_path
 
     if cache_enabled and os.path.isfile(cache_path):
         if time.time() - os.path.getmtime(cache_path) > 600 and os.geteuid() != 0:
             cmd = f"cd {get_repo_dir()} && git fetch origin dev --quiet && git checkout --quiet origin/dev -- {os.path.relpath(cache_path, get_repo_dir())}"
-            status = subprocess.run(cmd, executable='/bin/bash', shell=True, check=False)
+            status = subprocess.run(
+                cmd, executable='/bin/bash', shell=True, check=False
+            )
             if status.returncode != 0:
-                logging.error(f'failed to update container registry cache from GitHub ({cache_path})')
+                logging.error(
+                    f'failed to update container registry cache from GitHub ({cache_path})'
+                )
                 logging.error(f'return code {status.returncode} > {cmd}')
 
         with open(cache_path) as cache_file:
@@ -777,7 +966,9 @@ def get_registry_containers(user='dustynv', use_cache=True, **kwargs):
             except Exception:
                 pass
 
-    hub = dockerhub_api.DockerHub(return_lists=True, token=os.environ.get('DOCKERHUB_TOKEN'))
+    hub = dockerhub_api.DockerHub(
+        return_lists=True, token=os.environ.get('DOCKERHUB_TOKEN')
+    )
     _REGISTRY_CACHE = hub.repositories(user)
 
     for repo in _REGISTRY_CACHE:
@@ -826,7 +1017,9 @@ def find_local_containers(package, return_dicts=False, **kwargs):
     return found_containers
 
 
-def find_registry_containers(package, check_l4t_version=True, return_dicts=False, **kwargs):
+def find_registry_containers(
+    package, check_l4t_version=True, return_dicts=False, **kwargs
+):
     """
     Search DockerHub for container images compatible with the package or container name.
 
@@ -853,11 +1046,16 @@ def find_registry_containers(package, check_l4t_version=True, return_dicts=False
         repo_copy['tags'] = []
 
         for registry_image in registry_repo['tags']:
-            if tag and not (tag == registry_image['name'] or fnmatch.fnmatch(registry_image['name'], tag + '-*')):
+            if tag and not (
+                tag == registry_image['name']
+                or fnmatch.fnmatch(registry_image['name'], tag + '-*')
+            ):
                 continue
 
             if check_l4t_version:
-                if not l4t_version_compatible(l4t_version_from_tag(registry_image['name']), **kwargs):
+                if not l4t_version_compatible(
+                    l4t_version_from_tag(registry_image['name']), **kwargs
+                ):
                     continue
 
             repo_copy['tags'].append(copy.deepcopy(registry_image))
@@ -873,7 +1071,13 @@ def find_registry_containers(package, check_l4t_version=True, return_dicts=False
     return found_containers
 
 
-def find_container(package, prefer_sources=['local', 'registry', 'build'], disable_sources=[], quiet=True, **kwargs):
+def find_container(
+    package,
+    prefer_sources=['local', 'registry', 'build'],
+    disable_sources=[],
+    quiet=True,
+    **kwargs,
+):
     """
     Finds a local or remote container image to run for the given package (returns a string)
     TODO search for other packages that depend on this package if an image isn't available.
@@ -883,7 +1087,9 @@ def find_container(package, prefer_sources=['local', 'registry', 'build'], disab
         package = package['name']
 
     namespace, repo, tag = split_container_name(package)
-    log_debug(f"Finding compatible container image for namespace={namespace} repo={repo} tag={tag}")
+    log_debug(
+        f"Finding compatible container image for namespace={namespace} repo={repo} tag={tag}"
+    )
 
     for source in prefer_sources:
         if source in disable_sources:
@@ -896,21 +1102,31 @@ def find_container(package, prefer_sources=['local', 'registry', 'build'], disab
                 return local_images[0]
 
         elif source == 'registry':
-            registry_images = find_registry_containers(package, return_dicts=True, **kwargs)
+            registry_images = find_registry_containers(
+                package, return_dicts=True, **kwargs
+            )
 
             if len(registry_images) > 0:
-                img = registry_images[0]  # TODO allow use to select image if there are multiple candidates
+                img = registry_images[
+                    0
+                ]  # TODO allow use to select image if there are multiple candidates
                 img_tag = img['tags'][0]
                 img_name = f"{img['namespace']}/{img['name']}:{img_tag['name']}"
-                if quiet or query_yes_no(f"\nFound compatible container {img_name} ({img_tag['tag_last_pushed'][:10]}, {img_tag['full_size']/(1024**3):.1f}GB) - would you like to pull it?", default="yes"):
+                if quiet or query_yes_no(
+                    f"\nFound compatible container {img_name} ({img_tag['tag_last_pushed'][:10]}, {img_tag['full_size']/(1024**3):.1f}GB) - would you like to pull it?",
+                    default="yes",
+                ):
                     return img_name
 
         elif source == 'build':
-            if not quiet and query_yes_no(f"\nCouldn't find a compatible container for {package}, would you like to build it?"):
-                return build_container('', package) #, simulate=True)
+            if not quiet and query_yes_no(
+                f"\nCouldn't find a compatible container for {package}, would you like to build it?"
+            ):
+                return build_container('', package)  # , simulate=True)
 
     # compatible container image could not be found
     return None
+
 
 def parse_container_versions(tags, use_defaults=True, **kwargs):
     """
@@ -918,8 +1134,12 @@ def parse_container_versions(tags, use_defaults=True, **kwargs):
     This returns a dict of the aformentioned versions (typically from l4t_version.py)
     Missing tags will be filled in with their defaults unless ``use_defaults=False``
     """
-    #from ..packages.ros.version import ROS_PACKAGES
-    ROS_PACKAGES = ['ros_base', 'ros_core', 'desktop']  # TODO add function to import package
+    # from ..packages.ros.version import ROS_PACKAGES
+    ROS_PACKAGES = [
+        'ros_base',
+        'ros_core',
+        'desktop',
+    ]  # TODO add function to import package
 
     container = tags.lower()
 
@@ -943,7 +1163,9 @@ def parse_container_versions(tags, use_defaults=True, **kwargs):
         elif 'version' not in data:
             data['version'] = x
         else:
-            log_info(f"Skipping unknown container tag '{x}' while parsing '{container}'")
+            log_info(
+                f"Skipping unknown container tag '{x}' while parsing '{container}'"
+            )
 
     if not use_defaults:
         return data
@@ -956,7 +1178,7 @@ def parse_container_versions(tags, use_defaults=True, **kwargs):
 
     data.setdefault('JETPACK_VERSION', get_jetpack_version(l4t_version=l4t_version))
     data.setdefault('CUDA_VERSION', get_cuda_version(l4t_version=l4t_version))
-    data.setdefault('CUDA_ARCH', get_cuda_arch(l4t_version=l4t_version, format=str))
+    data.setdefault('CUDA_ARCH', get_cuda_arch(l4t_version=l4t_version, format=str))  # type: ignore[arg-type]
     data.setdefault('LSB_RELEASE', get_lsb_release(l4t_version=l4t_version))
 
     if 'ros' in container and 'ROS_PACKAGE' not in data:
@@ -965,7 +1187,7 @@ def parse_container_versions(tags, use_defaults=True, **kwargs):
                 data['ROS_PACKAGE'] = ros_package
                 break
 
-    for k,v in data.items():
+    for k, v in data.items():
         if not v:
             del k
             continue

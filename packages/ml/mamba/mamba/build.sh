@@ -17,6 +17,10 @@ git status
 sed -i '/torch/d' pyproject.toml
 sed -i '/triton/d' pyproject.toml
 
+# PyTorch 2.14 headers require C++20 (strong_ordering, starts_with, requires)
+# but mamba's setup.py hardcodes -std=c++17, which fails to compile.
+sed -i 's/-std=c++17/-std=c++20/g' setup.py
+
 # Remove version constraints for tilelang and apache-tvm-ffi in pyproject.toml
 #sed -i \
 #  -e 's|^tilelang.*|tilelang|g' \

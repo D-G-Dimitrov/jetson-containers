@@ -1,11 +1,20 @@
 import os
 from packaging.version import Version
+from typing import Any
 
 from jetson_containers import (
-    L4T_VERSION, JETPACK_VERSION, CUDA_VERSION,
-    CUDA_ARCHITECTURES, LSB_RELEASE, CUDA_ARCH, IS_SBSA, IS_TEGRA,
-    SYSTEM_ARM, DOCKER_ARCH, package_requires
+    JETPACK_VERSION,
+    CUDA_VERSION,
+    CUDA_ARCHITECTURES,
+    LSB_RELEASE,
+    CUDA_ARCH,
+    IS_SBSA,
+    IS_TEGRA,
+    DOCKER_ARCH,
+    package_requires,
 )
+
+package: Any  # injected as a module global by jetson_containers.packages (dict at import, list at the end)
 
 
 def cuda_build_args(version):
@@ -15,14 +24,18 @@ def cuda_build_args(version):
     return {
         'CUDA_ARCH_LIST': ';'.join([str(x) for x in CUDA_ARCHITECTURES]),
         'CUDA_ARCH': CUDA_ARCH,
-        'CUDA_INSTALLED_VERSION': int(str(CUDA_VERSION.major) + str(CUDA_VERSION.minor)),
+        'CUDA_INSTALLED_VERSION': int(
+            str(CUDA_VERSION.major) + str(CUDA_VERSION.minor)
+        ),
         'DISTRO': f"ubuntu{LSB_RELEASE.replace('.','')}",
         'IS_SBSA': IS_SBSA,
         'IS_TEGRA': IS_TEGRA,
     }
 
 
-def cuda_package(version, url, deb=None, packages=None, requires=None) -> list:
+def cuda_package(
+    version, url, deb=None, packages=None, requires=None
+) -> tuple[dict, dict]:
     """
     Generate containers for a particular version of CUDA installed from debian packages
     This will download & install the specified packages (by default the full CUDA Toolkit)
@@ -38,17 +51,24 @@ def cuda_package(version, url, deb=None, packages=None, requires=None) -> list:
 
     cuda['name'] = f'cuda:{version}'
 
-    cuda['build_args'] = {**{
-        'CUDA_URL': url,
-        'CUDA_DEB': deb,
-        'CUDA_PACKAGES': packages,
-        'IS_SBSA': IS_SBSA,
-    }, **cuda_build_args(version) }
+    # Persist the large CUDA repository .deb across layer rebuilds via a
+    # BuildKit cache mount (exposed to RUN steps as $BUILD_CACHE_DIR).
+    cuda['build_cache'] = '/opt/cuda-downloads'
+
+    cuda['build_args'] = {
+        **{
+            'CUDA_URL': url,
+            'CUDA_DEB': deb,
+            'CUDA_PACKAGES': packages,
+            'IS_SBSA': IS_SBSA,
+        },
+        **cuda_build_args(version),
+    }
 
     if requires:
         cuda['requires'] = requires
 
-    package_requires(cuda, system_arch='aarch64') # default to aarch64
+    package_requires(cuda, system_arch='aarch64')  # default to aarch64
 
     if 'toolkit' in packages or 'dev' in packages:
         cuda['depends'] = ['build-essential']
@@ -62,7 +82,7 @@ def cuda_package(version, url, deb=None, packages=None, requires=None) -> list:
     return cuda, cuda_pip
 
 
-def cuda_builtin(version, requires=None) -> list:
+def cuda_builtin(version, requires=None) -> tuple[dict, dict]:
     """
     Backwards-compatability for when CUDA already installed in base container (like l4t-jetpack)
     This will just retag the base, marking CUDA dependency as satisfied in any downstream containers.
@@ -91,7 +111,7 @@ def cuda_builtin(version, requires=None) -> list:
     return passthrough, cuda_pip
 
 
-def cuda_samples(version, requires, branch=None) -> list:
+def cuda_samples(version, requires, branch=None) -> dict:
     """
     Generates container that installs/builds the CUDA samples
     """
@@ -102,7 +122,9 @@ def cuda_samples(version, requires, branch=None) -> list:
 
     samples['name'] = f'cuda:{version}-samples'
     samples['dockerfile'] = 'Dockerfile.samples'
-    samples['notes'] = "CUDA samples from https://github.com/NVIDIA/cuda-samples installed under /opt/cuda-samples"
+    samples['notes'] = (
+        "CUDA samples from https://github.com/NVIDIA/cuda-samples installed under /opt/cuda-samples"
+    )
     samples['test'] = 'test-samples.sh'
     samples['depends'] = [f'cuda:{version}', 'cmake']
 
@@ -110,17 +132,14 @@ def cuda_samples(version, requires, branch=None) -> list:
         branch = 'v' + version
 
     if Version(version) > Version('12.5'):
-        make_cmd='cmake'
+        make_cmd = 'cmake'
         samples['depends'] += ['opengl', 'vulkan']
     elif Version(version) >= Version('12.0'):
-        make_cmd='make'
+        make_cmd = 'make'
     else:
-        make_cmd='make_flat'
+        make_cmd = 'make_flat'
 
-    samples['build_args'] = {
-        'CUDA_BRANCH': branch,
-        'CUDA_SAMPLES_MAKE': make_cmd
-    }
+    samples['build_args'] = {'CUDA_BRANCH': branch, 'CUDA_SAMPLES_MAKE': make_cmd}
 
     if Version(version) == CUDA_VERSION:
         samples['alias'] = 'cuda:samples'
@@ -140,12 +159,18 @@ def pip_cache(version, requires=None):
     index_host = os.environ.get('INDEX_HOST', 'jetson-ai-lab.io')
 
     pip_path = (
-        f"sbsa/{short_version}" if IS_SBSA
-        else f"jp{JETPACK_VERSION.major}/{short_version}" if IS_TEGRA
-        else f"{DOCKER_ARCH}/{short_version}"
+        f"sbsa/{short_version}"
+        if IS_SBSA
+        else (
+            f"jp{JETPACK_VERSION.major}/{short_version}"
+            if IS_TEGRA
+            else f"{DOCKER_ARCH}/{short_version}"
+        )
     )
 
-    apt_path = pip_path if Version(LSB_RELEASE).major < 24 else f"{pip_path}/{LSB_RELEASE}"
+    apt_path = (
+        pip_path if Version(LSB_RELEASE).major < 24 else f"{pip_path}/{LSB_RELEASE}"
+    )
 
     devpi_url = os.environ.get('DEVPI_URL')
     local_tar_index = os.environ.get('LOCAL_TAR_INDEX_URL')
@@ -159,7 +184,8 @@ def pip_cache(version, requires=None):
     else:
         pip_index_url = os.environ.get(
             'LOCAL_PIP_INDEX_URL',
-            os.environ.get('LOCAL_PIP_INDEX_REPO', remote_pip_url))
+            os.environ.get('LOCAL_PIP_INDEX_REPO', remote_pip_url),
+        )
         fallback_pip_url = remote_pip_url
 
     if local_tar_index:
@@ -172,7 +198,9 @@ def pip_cache(version, requires=None):
         downloads_url = f"https://apt.{index_host}/assets"
 
     upload_host = os.environ.get('PIP_UPLOAD_HOST', index_host)
-    trusted_hosts = f"{upload_host} {index_host}" if upload_host != index_host else index_host
+    trusted_hosts = (
+        f"{upload_host} {index_host}" if upload_host != index_host else index_host
+    )
 
     pip_cache = package.copy()
 
@@ -196,13 +224,22 @@ def pip_cache(version, requires=None):
         'FALLBACK_PIP_INDEX_URL': fallback_pip_url,
         'PIP_TRUSTED_HOSTS': trusted_hosts,
         'UV_EXTRA_INDEX_URL': f"https://pypi.{index_host}/root/pypi/+simple",
-        'PIP_UPLOAD_REPO': os.environ.get('PIP_UPLOAD_REPO', f"http://{upload_host}/{pip_path}"),
-        'PIP_UPLOAD_USER': os.environ.get('PIP_UPLOAD_USER',
-            'sbsa' if IS_SBSA
-            else f"jp{JETPACK_VERSION.major}" if IS_TEGRA
-            else 'amd64'),
+        'PIP_UPLOAD_REPO': os.environ.get(
+            'PIP_UPLOAD_REPO', f"http://{upload_host}/{pip_path}"
+        ),
+        'PIP_UPLOAD_USER': os.environ.get(
+            'PIP_UPLOAD_USER',
+            (
+                'sbsa'
+                if IS_SBSA
+                else f"jp{JETPACK_VERSION.major}" if IS_TEGRA else 'amd64'
+            ),
+        ),
         'PIP_UPLOAD_PASS': os.environ.get('PIP_UPLOAD_PASS', 'none'),
-        'SCP_UPLOAD_URL': os.environ.get('SCP_UPLOAD_URL', f"{os.environ.get('SCP_UPLOAD_HOST', 'localhost:/dist')}/{apt_path}"),
+        'SCP_UPLOAD_URL': os.environ.get(
+            'SCP_UPLOAD_URL',
+            f"{os.environ.get('SCP_UPLOAD_HOST', 'localhost:/dist')}/{apt_path}",
+        ),
         'SCP_UPLOAD_USER': os.environ.get('SCP_UPLOAD_USER', ''),
         'SCP_UPLOAD_PASS': os.environ.get('SCP_UPLOAD_PASS', ''),
         'SCP_UPLOAD_KEY': os.environ.get('SCP_UPLOAD_KEY', ''),
@@ -216,32 +253,61 @@ def pip_cache(version, requires=None):
 
     return pip_cache
 
+
 if IS_TEGRA:
     package = [
         # JetPack 7
-        cuda_package('13.2',
-                     'https://developer.download.nvidia.com/compute/cuda/13.2.1/local_installers/cuda-repo-ubuntu2404-13-2-local_13.2.1-595.58.03-1_arm64.deb',
-                     requires='aarch64'),
+        cuda_package(
+            '13.2',
+            'https://developer.download.nvidia.com/compute/cuda/13.2.1/local_installers/cuda-repo-ubuntu2404-13-2-local_13.2.1-595.58.03-1_arm64.deb',
+            requires='aarch64',
+        ),
         cuda_samples('13.2', requires='>=36'),
-
         # JetPack 6
-        cuda_package('12.2', 'https://nvidia.box.com/shared/static/uvqtun1sc0bq76egarc8wwuh6c23e76e.deb', 'cuda-tegra-repo-ubuntu2204-12-2-local', requires='==36.*'),
+        cuda_package(
+            '12.2',
+            'https://nvidia.box.com/shared/static/uvqtun1sc0bq76egarc8wwuh6c23e76e.deb',
+            'cuda-tegra-repo-ubuntu2204-12-2-local',
+            requires='==36.*',
+        ),
         cuda_samples('12.2', requires='==36.*'),
-        cuda_package('12.4', 'https://developer.download.nvidia.com/compute/cuda/12.4.1/local_installers/cuda-tegra-repo-ubuntu2204-12-4-local_12.4.1-1_arm64.deb', requires='==36.*'),
+        cuda_package(
+            '12.4',
+            'https://developer.download.nvidia.com/compute/cuda/12.4.1/local_installers/cuda-tegra-repo-ubuntu2204-12-4-local_12.4.1-1_arm64.deb',
+            requires='==36.*',
+        ),
         cuda_samples('12.4', requires='==36.*'),
-        cuda_package('12.6', 'https://developer.download.nvidia.com/compute/cuda/12.6.3/local_installers/cuda-tegra-repo-ubuntu2204-12-6-local_12.6.3-1_arm64.deb', requires='==36.*'),
+        cuda_package(
+            '12.6',
+            'https://developer.download.nvidia.com/compute/cuda/12.6.3/local_installers/cuda-tegra-repo-ubuntu2204-12-6-local_12.6.3-1_arm64.deb',
+            requires='==36.*',
+        ),
         cuda_samples('12.6', branch='12.5', requires='==36.*'),
-        cuda_package('12.8', 'https://developer.download.nvidia.com/compute/cuda/12.8.1/local_installers/cuda-tegra-repo-ubuntu2204-12-8-local_12.8.1-1_arm64.deb', requires='>=36'),
+        cuda_package(
+            '12.8',
+            'https://developer.download.nvidia.com/compute/cuda/12.8.1/local_installers/cuda-tegra-repo-ubuntu2204-12-8-local_12.8.1-1_arm64.deb',
+            requires='>=36',
+        ),
         cuda_samples('12.8', requires='>=36'),
-        cuda_package('12.9','https://developer.download.nvidia.com/compute/cuda/12.9.1/local_installers/cuda-tegra-repo-ubuntu2204-12-9-local_12.9.1-1_arm64.deb', requires='>=36'),
+        cuda_package(
+            '12.9',
+            'https://developer.download.nvidia.com/compute/cuda/12.9.1/local_installers/cuda-tegra-repo-ubuntu2204-12-9-local_12.9.1-1_arm64.deb',
+            requires='>=36',
+        ),
         cuda_samples('12.9', requires='>=36'),
-
         # JetPack 5
-        cuda_package('12.2', 'https://developer.download.nvidia.com/compute/cuda/12.2.2/local_installers/cuda-tegra-repo-ubuntu2004-12-2-local_12.2.2-1_arm64.deb', requires='==35.*'),
+        cuda_package(
+            '12.2',
+            'https://developer.download.nvidia.com/compute/cuda/12.2.2/local_installers/cuda-tegra-repo-ubuntu2004-12-2-local_12.2.2-1_arm64.deb',
+            requires='==35.*',
+        ),
         cuda_samples('12.2', requires='==35.*'),
-        cuda_package('11.8', 'https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-tegra-repo-ubuntu2004-11-8-local_11.8.0-1_arm64.deb', requires='==35.*'),
+        cuda_package(
+            '11.8',
+            'https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-tegra-repo-ubuntu2004-11-8-local_11.8.0-1_arm64.deb',
+            requires='==35.*',
+        ),
         cuda_samples('11.8', requires='==35.*'),
-
         # JetPack 4-5 (CUDA installed in base container)
         cuda_builtin(CUDA_VERSION, requires='<36'),
         cuda_samples(CUDA_VERSION, requires='<36'),
@@ -249,49 +315,68 @@ if IS_TEGRA:
 elif IS_SBSA:
     package = [
         # sbsa
-        cuda_package('12.8',
-                     'https://developer.download.nvidia.com/compute/cuda/12.8.1/local_installers/cuda-repo-ubuntu2404-12-8-local_12.8.1-570.124.06-1_arm64.deb',
-                     requires='aarch64'),
+        cuda_package(
+            '12.8',
+            'https://developer.download.nvidia.com/compute/cuda/12.8.1/local_installers/cuda-repo-ubuntu2404-12-8-local_12.8.1-570.124.06-1_arm64.deb',
+            requires='aarch64',
+        ),
         cuda_samples('12.8', requires='aarch64'),
-        cuda_package('12.9',
-                     'https://developer.download.nvidia.com/compute/cuda/12.9.1/local_installers/cuda-repo-ubuntu2404-12-9-local_12.9.1-575.57.08-1_arm64.deb',
-                     requires='aarch64'),
+        cuda_package(
+            '12.9',
+            'https://developer.download.nvidia.com/compute/cuda/12.9.1/local_installers/cuda-repo-ubuntu2404-12-9-local_12.9.1-575.57.08-1_arm64.deb',
+            requires='aarch64',
+        ),
         cuda_samples('12.9', requires='aarch64'),
-        cuda_package('13.0',
-                     'https://developer.download.nvidia.com/compute/cuda/13.0.2/local_installers/cuda-repo-ubuntu2404-13-0-local_13.0.2-580.95.05-1_arm64.deb',
-                     requires='aarch64'),
+        cuda_package(
+            '13.0',
+            'https://developer.download.nvidia.com/compute/cuda/13.0.2/local_installers/cuda-repo-ubuntu2404-13-0-local_13.0.2-580.95.05-1_arm64.deb',
+            requires='aarch64',
+        ),
         cuda_samples('13.0', requires='aarch64'),
-        cuda_package('13.1',
-                     'https://developer.download.nvidia.com/compute/cuda/13.1.0/local_installers/cuda-repo-ubuntu2404-13-1-local_13.1.0-590.44.01-1_arm64.deb',
-                     requires='aarch64'),
+        cuda_package(
+            '13.1',
+            'https://developer.download.nvidia.com/compute/cuda/13.1.0/local_installers/cuda-repo-ubuntu2404-13-1-local_13.1.0-590.44.01-1_arm64.deb',
+            requires='aarch64',
+        ),
         cuda_samples('13.1', requires='aarch64'),
-        cuda_package('13.2',
-                     'https://developer.download.nvidia.com/compute/cuda/13.2.1/local_installers/cuda-repo-ubuntu2404-13-2-local_13.2.1-595.58.03-1_arm64.deb',
-                     requires='aarch64'),
+        cuda_package(
+            '13.2',
+            'https://developer.download.nvidia.com/compute/cuda/13.2.1/local_installers/cuda-repo-ubuntu2404-13-2-local_13.2.1-595.58.03-1_arm64.deb',
+            requires='aarch64',
+        ),
         cuda_samples('13.2', requires='aarch64'),
-
     ]
 else:
     package = [
         # x86_64
-        cuda_package('12.8',
-                     'https://developer.download.nvidia.com/compute/cuda/12.8.1/local_installers/cuda-repo-ubuntu2404-12-8-local_12.8.1-570.124.06-1_amd64.deb',
-                     requires='x86_64'),
+        cuda_package(
+            '12.8',
+            'https://developer.download.nvidia.com/compute/cuda/12.8.1/local_installers/cuda-repo-ubuntu2404-12-8-local_12.8.1-570.124.06-1_amd64.deb',
+            requires='x86_64',
+        ),
         cuda_samples('12.8', requires='x86_64'),
-        cuda_package('12.9',
-                     'https://developer.download.nvidia.com/compute/cuda/12.9.1/local_installers/cuda-repo-ubuntu2404-12-9-local_12.9.1-575.57.08-1_amd64.deb',
-                     requires='x86_64'),
+        cuda_package(
+            '12.9',
+            'https://developer.download.nvidia.com/compute/cuda/12.9.1/local_installers/cuda-repo-ubuntu2404-12-9-local_12.9.1-575.57.08-1_amd64.deb',
+            requires='x86_64',
+        ),
         cuda_samples('12.9', requires='x86_64'),
-        cuda_package('13.0',
-                     'https://developer.download.nvidia.com/compute/cuda/13.0.2/local_installers/cuda-repo-ubuntu2404-13-0-local_13.0.2-580.95.05-1_amd64.deb',
-                     requires='x86_64'),
+        cuda_package(
+            '13.0',
+            'https://developer.download.nvidia.com/compute/cuda/13.0.2/local_installers/cuda-repo-ubuntu2404-13-0-local_13.0.2-580.95.05-1_amd64.deb',
+            requires='x86_64',
+        ),
         cuda_samples('13.0', requires='x86_64'),
-        cuda_package('13.1',
-                     'https://developer.download.nvidia.com/compute/cuda/13.1.0/local_installers/cuda-repo-ubuntu2404-13-1-local_13.1.0-590.44.01-1_amd64.deb',
-                     requires='x86_64'),
+        cuda_package(
+            '13.1',
+            'https://developer.download.nvidia.com/compute/cuda/13.1.0/local_installers/cuda-repo-ubuntu2404-13-1-local_13.1.0-590.44.01-1_amd64.deb',
+            requires='x86_64',
+        ),
         cuda_samples('13.1', requires='x86_64'),
-        cuda_package('13.2',
-                     'https://developer.download.nvidia.com/compute/cuda/13.2.1/local_installers/cuda-repo-ubuntu2204-13-2-local_13.2.1-595.58.03-1_amd64.deb',
-                     requires='aarch64'),
+        cuda_package(
+            '13.2',
+            'https://developer.download.nvidia.com/compute/cuda/13.2.1/local_installers/cuda-repo-ubuntu2204-13-2-local_13.2.1-595.58.03-1_amd64.deb',
+            requires='aarch64',
+        ),
         cuda_samples('13.2', requires='aarch64'),
     ]

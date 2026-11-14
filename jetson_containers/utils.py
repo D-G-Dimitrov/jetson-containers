@@ -7,7 +7,7 @@ import requests
 import subprocess
 import sys
 import time
-from typing import Dict, Literal
+from typing import Literal, Any
 
 
 def check_dependencies(install: bool = True):
@@ -23,14 +23,16 @@ def check_dependencies(install: bool = True):
 
         from packaging.version import Version
 
-        x = Version('1.2.3') # check that .major, .minor, .micro are available
-        x = x.major          # (these are in packaging>=20.0)
+        x = Version('1.2.3')  # check that .major, .minor, .micro are available
+        x = x.major  # (these are in packaging>=20.0)
 
     except Exception as error:
         if not install:
             raise error
 
-        requirements = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'requirements.txt')
+        requirements = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), 'requirements.txt'
+        )
         cmd = [sys.executable, '-m', 'pip', 'install', '-r', requirements]
 
         print('-- Installing required packages:', cmd)
@@ -60,7 +62,7 @@ def get_repo_dir():
     return os.path.dirname(os.path.dirname(__file__))
 
 
-def get_env(key, default=None, type=str):
+def get_env(key, default=None, type=None) -> Any:
     """
     Retrieve an environment variable and convert it to the given type,
     or return the default value if it's undefined (by default `None`)
@@ -99,11 +101,13 @@ def get_env(key, default=None, type=str):
         try:
             return type(value)
         except Exception as error:
-            print(f"-- Warning:  exception occurred parsing environment variable `${key} = {value}` (default={default}, type={type})\n--           {error}")
+            print(
+                f"-- Warning:  exception occurred parsing environment variable `${key} = {value}` (default={default}, type={type})\n--           {error}"
+            )
             return default
 
 
-def get_env_flag(key, default: bool=False) -> bool:
+def get_env_flag(key, default: bool = False) -> bool:
     """
     Return a boolean environment variable parsed from a truthy string
     or value as converted by the `to_bool()` function, for example:
@@ -121,7 +125,7 @@ def get_env_flag(key, default: bool=False) -> bool:
     return get_env(key, default=default, type=bool)
 
 
-def to_bool(value: str, default: None) -> bool:
+def to_bool(value: str, default: bool = False) -> bool:
     """
     Convert a truthy value or string (like 1, 'true', 'ON', ect) to boolean.
     """
@@ -205,7 +209,7 @@ def user_in_group(group) -> bool:
     except KeyError:
         return False
 
-    return (group.gr_gid in os.getgroups())
+    return group.gr_gid in os.getgroups()
 
 
 def is_root_user() -> bool:
@@ -222,7 +226,7 @@ def sudo_prefix(group: str = 'docker'):
     return "sudo " if needs_sudo(group) else ""
 
 
-def needs_sudo(group: str='docker') -> bool:
+def needs_sudo(group: str = 'docker') -> bool:
     """
     Returns true if sudo is needed to use the docker engine (if user isn't in the docker group)
     """
@@ -241,9 +245,10 @@ def needs_sudo(group: str='docker') -> bool:
             try:
                 subprocess.run(
                     ['docker', 'info'],
-                    check=True, shell=False,
+                    check=True,
+                    shell=False,
                     stderr=subprocess.DEVNULL,
-                    stdout=subprocess.DEVNULL
+                    stdout=subprocess.DEVNULL,
                 )
                 return False
             except Exception:
@@ -254,4 +259,4 @@ def needs_sudo(group: str='docker') -> bool:
 
 
 # will be true if user needs sudo to access docker
-NEEDS_SUDO=None
+NEEDS_SUDO = None

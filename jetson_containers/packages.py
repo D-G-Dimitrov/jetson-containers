@@ -3,6 +3,7 @@ import concurrent.futures
 import copy
 import fnmatch
 import importlib
+import importlib.abc
 import importlib.machinery
 import importlib.util
 import json
@@ -14,11 +15,21 @@ import types
 import yaml
 from packaging.specifiers import SpecifierSet
 from packaging.version import Version
+from typing import Optional
 
 from .l4t_version import (
-    L4T_VERSION, CUDA_VERSION, PYTHON_VERSION, DOCKER_ARCH,
-    LSB_RELEASE, LSB_RELEASES, CUDA_ARCH, CUDA_ARCHS, SYSTEM_ARM, SYSTEM_ARCH_LIST,
-    IS_SBSA, check_arch
+    L4T_VERSION,
+    CUDA_VERSION,
+    PYTHON_VERSION,
+    DOCKER_ARCH,
+    LSB_RELEASE,
+    LSB_RELEASES,
+    CUDA_ARCH,
+    CUDA_ARCHS,
+    SYSTEM_ARM,
+    SYSTEM_ARCH_LIST,
+    IS_SBSA,
+    check_arch,
 )
 from .logging import log_debug, log_warning, log_error
 from .utils import get_repo_dir
@@ -32,6 +43,7 @@ class _PackagesFinder(importlib.abc.MetaPathFinder):
     ``from packages.ml.pytorch.version import PYTORCH_VERSION`` without
     requiring ``__init__.py`` files in every intermediate directory.
     """
+
     _packages_root = None
 
     @classmethod
@@ -41,7 +53,7 @@ class _PackagesFinder(importlib.abc.MetaPathFinder):
         return cls._packages_root
 
     @classmethod
-    def find_spec(cls, fullname, path, target=None):
+    def find_spec(cls, fullname: str, path=None, target=None):  # type: ignore[override]
         parts = fullname.split('.')
         if parts[0] != 'packages' or len(parts) < 2:
             return None
@@ -52,7 +64,8 @@ class _PackagesFinder(importlib.abc.MetaPathFinder):
             init_file = os.path.join(fs_path, '__init__.py')
             if os.path.isfile(init_file):
                 return importlib.util.spec_from_file_location(
-                    fullname, init_file,
+                    fullname,
+                    init_file,
                     submodule_search_locations=[fs_path],
                 )
             spec = importlib.machinery.ModuleSpec(fullname, None, is_package=True)
@@ -77,9 +90,29 @@ _PACKAGES = {}
 _PACKAGE_SCAN = False
 _PACKAGE_DIRS = [os.path.join(get_repo_dir(), 'packages/*')]
 _PACKAGE_OPTS = {'check_l4t_version': True}
-_PACKAGE_KEYS = ['alias', 'build_args', 'build_flags', 'buildkit_device', 'config', 'depends', 'disabled',
-                 'dockerfile', 'docs', 'group', 'multistage', 'name', 'notes', 'path',
-                 'prefix', 'postfix', 'requires', 'run_user', 'secrets', 'test']
+_PACKAGE_KEYS = [
+    'alias',
+    'build_args',
+    'build_cache',
+    'build_flags',
+    'buildkit_device',
+    'config',
+    'depends',
+    'disabled',
+    'dockerfile',
+    'docs',
+    'group',
+    'multistage',
+    'name',
+    'notes',
+    'path',
+    'prefix',
+    'postfix',
+    'requires',
+    'run_user',
+    'secrets',
+    'test',
+]
 
 
 def package_search_dirs(package_dirs, scan=False):
@@ -124,9 +157,8 @@ def scan_packages(package_dirs=_PACKAGE_DIRS, rescan=False, **kwargs):
         return _PACKAGES
 
     # disable parallel scan on python 3.8 due to unknown spin condition
-    THREADING = (
-        Version(f'{sys.version_info.major}.{sys.version_info.minor}')
-        > Version('3.8')
+    THREADING = Version(f'{sys.version_info.major}.{sys.version_info.minor}') > Version(
+        '3.8'
     )
 
     # if this is a list of directories, scan each
@@ -140,7 +172,9 @@ def scan_packages(package_dirs=_PACKAGE_DIRS, rescan=False, **kwargs):
             try:
                 resolve_dependencies(key)
             except KeyError as error:
-                print(f"-- Package {key} has missing dependencies, disabling...  ({error})")
+                print(
+                    f"-- Package {key} has missing dependencies, disabling...  ({error})"
+                )
                 del _PACKAGES[key]
 
         if THREADING:
@@ -159,7 +193,7 @@ def scan_packages(package_dirs=_PACKAGE_DIRS, rescan=False, **kwargs):
     # check for wildcard at end of path to scan recursively
     # print(f"-- Searching {path} for packages...")
 
-    recursive = (path[-1] == '*')
+    recursive = path[-1] == '*'
     path = path.rstrip('*').rstrip('/')
 
     if not os.path.isdir(path):
@@ -172,7 +206,7 @@ def scan_packages(package_dirs=_PACKAGE_DIRS, rescan=False, **kwargs):
         'requires': '>=32.6',
         'postfix': '',
         'config': [],
-        'test': []
+        'test': [],
     }
 
     # assign default tag based on platform arch (L4T, SBSA, x86)
@@ -181,13 +215,17 @@ def scan_packages(package_dirs=_PACKAGE_DIRS, rescan=False, **kwargs):
         arch_tag = 'arm64-sbsa' if IS_SBSA else CUDA_ARCH
 
         if L4T_VERSION >= Version('36.4'):
-            package['postfix'] = f'r{L4T_VERSION.major}.{L4T_VERSION.minor}.{arch_tag}'  # r36.4, r38.4
+            package['postfix'] = (
+                f'r{L4T_VERSION.major}.{L4T_VERSION.minor}.{arch_tag}'  # r36.4, r38.4
+            )
         elif L4T_VERSION >= Version('36.4'):
-            package['postfix'] = f'r{L4T_VERSION.major}.{L4T_VERSION.minor}' # r36.4, r38.4
+            package['postfix'] = (
+                f'r{L4T_VERSION.major}.{L4T_VERSION.minor}'  # r36.4, r38.4
+            )
         else:
-            package['postfix'] = f'r{L4T_VERSION}' # r32.7.1
+            package['postfix'] = f'r{L4T_VERSION}'  # r32.7.1
     else:
-        package['postfix'] = f'{DOCKER_ARCH}.{CUDA_ARCH}' # amd64
+        package['postfix'] = f'{DOCKER_ARCH}.{CUDA_ARCH}'  # amd64
 
     # add CUDA and Python postfixes when they are non-standard versions
     HAS_ENV = {
@@ -196,12 +234,16 @@ def scan_packages(package_dirs=_PACKAGE_DIRS, rescan=False, **kwargs):
     }
 
     if HAS_ENV['PYTHON_VERSION']:
-        package['postfix'] = package['postfix'] + f"-cp{PYTHON_VERSION.major}{PYTHON_VERSION.minor}"
+        package['postfix'] = (
+            package['postfix'] + f"-cp{PYTHON_VERSION.major}{PYTHON_VERSION.minor}"
+        )
 
-    #if HAS_ENV['CUDA_VERSION'] or HAS_ENV['LSB_RELEASE'] or not SYSTEM_ARM:
-    package['postfix'] = package['postfix'] + f"-cu{CUDA_VERSION.major}{CUDA_VERSION.minor}"
+    # if HAS_ENV['CUDA_VERSION'] or HAS_ENV['LSB_RELEASE'] or not SYSTEM_ARM:
+    package['postfix'] = (
+        package['postfix'] + f"-cu{CUDA_VERSION.major}{CUDA_VERSION.minor}"
+    )
 
-    #if HAS_ENV['LSB_RELEASE'] or not SYSTEM_ARM:
+    # if HAS_ENV['LSB_RELEASE'] or not SYSTEM_ARM:
     package['postfix'] = package['postfix'] + f"-{LSB_RELEASE}"
 
     # skip recursively searching under these packages
@@ -216,12 +258,16 @@ def scan_packages(package_dirs=_PACKAGE_DIRS, rescan=False, **kwargs):
 
     if len(_PACKAGES) == 0 and 'preload' not in kwargs:
         for preload in PRELOAD:
-            preload_dir=os.path.join(get_repo_dir(), 'packages', preload)
+            preload_dir = os.path.join(get_repo_dir(), 'packages', preload)
             log_debug(f'Preload {preload_dir}')
             scan_packages(package_dirs=preload_dir, preload=True)
 
     # search this directory for dockerfiles and config scripts
-    entries = os.listdir(path)
+    try:
+        entries = os.listdir(path)
+    except OSError as err:
+        log_warning(f"Could not scan package directory '{path}':  {err}")
+        return _PACKAGES
     threads = []
 
     for entry in entries:
@@ -235,7 +281,9 @@ def scan_packages(package_dirs=_PACKAGE_DIRS, rescan=False, **kwargs):
             continue
 
         if os.path.isdir(entry_path) and recursive:
-            scan_kwargs = dict(package_dirs=os.path.join(entry_path, '*'), preload=preload)
+            scan_kwargs = dict(
+                package_dirs=os.path.join(entry_path, '*'), preload=bool(preload)
+            )
             if THREADING:
                 thread = threading.Thread(
                     target=scan_packages,
@@ -244,7 +292,9 @@ def scan_packages(package_dirs=_PACKAGE_DIRS, rescan=False, **kwargs):
                 threads.append(thread)
                 thread.start()
             else:
-                scan_packages(**scan_kwargs)
+                scan_packages(
+                    package_dirs=os.path.join(entry_path, '*'), preload=bool(preload)
+                )
         elif os.path.isfile(entry_path):
             if entry.lower() == 'dockerfile':  # entry.lower().find('dockerfile') >= 0:
                 package['dockerfile'] = entry
@@ -280,7 +330,8 @@ def scan_packages(package_dirs=_PACKAGE_DIRS, rescan=False, **kwargs):
 
     return packages
 
-def find_package(package, required=True, scan=True):
+
+def find_package(package, required=True, scan=True) -> Optional[dict]:
     """
     Find a package by name or alias, and return it's configuration dict.
     This filters the names with pattern matching using shell-style wildcards.
@@ -304,12 +355,14 @@ def find_package(package, required=True, scan=True):
         return None
 
 
-def find_packages(packages, required=True, scan=True, skip=[]):
+def find_packages(packages, required=True, scan=True, skip=None):
     """
     Find a set of packages by name or alias, and return them in a dict.
     This filters the names with pattern matching using shell-style wildcards.
     If required is true, a KeyError exception will be raised if any of the packages can't be found.
     """
+    if skip is None:
+        skip = []
     if scan:
         scan_packages()
 
@@ -398,7 +451,7 @@ def group_packages(packages, key, default=''):
     return grouped
 
 
-def resolve_dependencies(packages, check=True, skip_packages=[]):
+def resolve_dependencies(packages, check=True, skip_packages=None):
     """
     Recursively expand the list of dependencies to include all sub-dependencies.
     Returns a new list of containers to build which contains all the dependencies.
@@ -408,6 +461,9 @@ def resolve_dependencies(packages, check=True, skip_packages=[]):
 
     skip_packages is a list of package names to exclude from the dependency resolution.
     """
+    if skip_packages is None:
+        skip_packages = []
+
     if isinstance(packages, str):
         packages = [packages]
 
@@ -415,27 +471,41 @@ def resolve_dependencies(packages, check=True, skip_packages=[]):
         packages_org = packages.copy()
 
         for package in packages_org:
-            for dependency in find_package(package).get('depends', []):
+            pkg = find_package(package)
+            if pkg is None:
+                continue
+            for dependency in pkg.get('depends', []):
                 package_index = packages.index(package)
                 dependency_index = -1
 
                 for i, existing in enumerate(packages):
                     if existing == dependency:  # same package names/tags
                         dependency_index = i
-                    elif existing.split(':')[
-                        0] == dependency:  # a specific tag of this package was already added   #dependency.split(':')[0]
+                    elif (
+                        existing.split(':')[0] == dependency
+                    ):  # a specific tag of this package was already added   #dependency.split(':')[0]
                         dependency_index = i
-                    elif existing == dependency.split(':')[0]:  # replace with this specific tag
+                    elif (
+                        existing == dependency.split(':')[0]
+                    ):  # replace with this specific tag
                         packages[i] = dependency
                         return packages, True
 
-                if dependency_index < 0:  # dependency not in list, add it before the package
+                if (
+                    dependency_index < 0
+                ):  # dependency not in list, add it before the package
                     packages.insert(package_index, dependency)
-                elif dependency_index > package_index:  # dependency after current package, move it to before
+                elif (
+                    dependency_index > package_index
+                ):  # dependency after current package, move it to before
                     packages.pop(dependency_index)
                     packages.insert(package_index, dependency)
                     return packages, True
-        packages = [p for p in packages if not any(fnmatch.fnmatch(p, skip) for skip in skip_packages)]
+        packages = [
+            p
+            for p in packages
+            if not any(fnmatch.fnmatch(p, skip) for skip in skip_packages)
+        ]
         return packages, (packages != packages_org)
 
     # iteratively unroll/expand dependencies until the full list is resolved
@@ -449,9 +519,13 @@ def resolve_dependencies(packages, check=True, skip_packages=[]):
             break
         iterations = iterations + 1
         if iterations > int(max_iterations * 0.95):
-            log_warning(f"reaching maximum recursion depth resolving dependencies for {packages_copy} ({iterations} of {max_iterations})\n{packages}")
+            log_warning(
+                f"reaching maximum recursion depth resolving dependencies for {packages_copy} ({iterations} of {max_iterations})\n{packages}"
+            )
         if iterations > max_iterations:
-            raise RecursionError(f"infinite recursion detected resolving dependencies for {packages_copy}\n{packages}")
+            raise RecursionError(
+                f"infinite recursion detected resolving dependencies for {packages_copy}\n{packages}"
+            )
 
     # make sure all packages can be found
     if check:
@@ -475,7 +549,7 @@ def update_dependencies(old, new):
     if isinstance(new, str):
         new = [new]
 
-    assert (isinstance(new, list))
+    assert isinstance(new, list)
 
     for dependency in new:
         old = [dependency if x == dependency.split(':')[0] else x for x in old]
@@ -518,13 +592,23 @@ def apply_config(package, config):
     if validate_dict(config):  # the package config entries are in the top-level dict
         package.update(validate_lists(config))
         if 'dockerfile' in config:
-            apply_config(package, parse_yaml_header(os.path.join(config['path'], config['dockerfile'])))
-    elif len(config) == 1:  # nested dict with just one package (merge with existing package)
+            apply_config(
+                package,
+                parse_yaml_header(os.path.join(config['path'], config['dockerfile'])),
+            )
+    elif (
+        len(config) == 1
+    ):  # nested dict with just one package (merge with existing package)
         name = list(config.keys())[0]
         package['name'] = name
         package.update(validate_lists(config[name]))
         if 'dockerfile' in config[name]:
-            apply_config(package, parse_yaml_header(os.path.join(config[name]['path'], config[name]['dockerfile'])))
+            apply_config(
+                package,
+                parse_yaml_header(
+                    os.path.join(config[name]['path'], config[name]['dockerfile'])
+                ),
+            )
     else:
         for pkg_name, pkg in config.items():  # nested dict with multiple subpackages
             for key in _PACKAGE_KEYS:  # apply inherited package info
@@ -532,7 +616,9 @@ def apply_config(package, config):
                     # print(f"-- Setting {pkg_name} key {key} from {package['name']} to ", package[key])
                     pkg.setdefault(key, package[key])
             if 'dockerfile' in pkg:
-                apply_config(pkg, parse_yaml_header(os.path.join(pkg['path'], pkg['dockerfile'])))
+                apply_config(
+                    pkg, parse_yaml_header(os.path.join(pkg['path'], pkg['dockerfile']))
+                )
             package[pkg_name] = validate_lists(pkg)
 
 
@@ -544,6 +630,9 @@ def config_package(package):
         package = find_package(package)
     elif not isinstance(package, dict):
         raise ValueError("package should either be a string or dict")
+
+    if not isinstance(package, dict):
+        raise RuntimeError("package not found")
 
     if 'dockerfile' in package:
         config = parse_yaml_header(os.path.join(package['path'], package['dockerfile']))
@@ -575,9 +664,11 @@ def config_package(package):
                 sys.modules[parent_name] = parent_mod
 
             spec = importlib.util.spec_from_file_location(module_name, config_path)
+            if spec is None or spec.loader is None:
+                raise RuntimeError(f"failed to load package config: {config_path}")
             module = importlib.util.module_from_spec(spec)
             sys.modules[module_name] = module
-            module.package = package  # add current package's dict as a global
+            module.package = package  # type: ignore[attr-defined]  # add current package's dict as a global
             spec.loader.exec_module(module)
             package = module.package
             if package is None:  # package was disabled in config script
@@ -625,8 +716,8 @@ def package_requires(package, requires=None, system_arch=None, unless=None):
     """
     if isinstance(package, (list, tuple)):
         for pkg in package:
-            package_requires(pkg,
-                requires=requires, system_arch=system_arch, unless=unless
+            package_requires(
+                pkg, requires=requires, system_arch=system_arch, unless=unless
             )
         return package
 
@@ -647,7 +738,7 @@ def package_requires(package, requires=None, system_arch=None, unless=None):
 
     for req in reqs:
         if any([req == x for x in unless]):
-           return
+            return
 
     if requires not in reqs:
         reqs.append(requires)
@@ -656,7 +747,14 @@ def package_requires(package, requires=None, system_arch=None, unless=None):
     return package
 
 
-def check_requirement(requires, l4t_version=L4T_VERSION, cuda_version=CUDA_VERSION, lsb_release=LSB_RELEASE, cuda_arch=CUDA_ARCH, name: str=''):
+def check_requirement(
+    requires,
+    l4t_version=L4T_VERSION,
+    cuda_version=CUDA_VERSION,
+    lsb_release=LSB_RELEASE,
+    cuda_arch=CUDA_ARCH,
+    name: str = '',
+):
     """
     Check if the L4T/CUDA versions meet the needed specifier/requirement
     """
@@ -681,12 +779,18 @@ def check_requirement(requires, l4t_version=L4T_VERSION, cuda_version=CUDA_VERSI
             return cuda_arch == cuda_type
 
     if 'cu' in requires:
-        if Version(f"{cuda_version.major}{cuda_version.minor}") not in SpecifierSet(requires.replace('cu', '')):
-            log_debug(f"Package {name} isn't compatible with CUDA {cuda_version} (requires {requires})")
+        if Version(f"{cuda_version.major}{cuda_version.minor}") not in SpecifierSet(
+            requires.replace('cu', '')
+        ):
+            log_debug(
+                f"Package {name} isn't compatible with CUDA {cuda_version} (requires {requires})"
+            )
             return False
     else:
         if l4t_version not in SpecifierSet(requires.replace('r', '')):
-            log_debug(f"Package {name} isn't compatible with L4T r{l4t_version} (requires L4T {requires})")
+            log_debug(
+                f"Package {name} isn't compatible with L4T r{l4t_version} (requires L4T {requires})"
+            )
             return False
 
     return True
@@ -732,7 +836,8 @@ def validate_package(package):
 
         if _PACKAGE_OPTS['check_l4t_version'] and not check_requirements(pkg):
             log_debug(
-                f"Package {pkg['name']} isn't compatible with L4T r{L4T_VERSION} (requires L4T {pkg['requires']})")
+                f"Package {pkg['name']} isn't compatible with L4T r{L4T_VERSION} (requires L4T {pkg['requires']})"
+            )
             pkg['disabled'] = True
 
         if pkg.get('disabled', False):
@@ -753,6 +858,7 @@ def validate_config(path):
     if ext != '.json' and ext != '.yml' and ext != '.yaml':
         return None
 
+    config = None
     try:
         with open(path, 'r') as file:
             if ext == '.json':
@@ -767,8 +873,15 @@ def validate_config(path):
     if not isinstance(config, dict) or len(config) == 0:
         return None
 
-    if not validate_dict(config):  # see if the top-level dict contains the package configuration entries themselves
-        for package_name, package in config.items():  # see if this is a nested dict with one or multiple subpackages
+    if not validate_dict(
+        config
+    ):  # see if the top-level dict contains the package configuration entries themselves
+        for (
+            package_name,
+            package,
+        ) in (
+            config.items()
+        ):  # see if this is a nested dict with one or multiple subpackages
             if not validate_dict(package):
                 return None
 
@@ -839,7 +952,9 @@ def parse_yaml_header(dockerfile):
         if validate_dict(config):
             return config
         else:
-            log_warning(f"YAML header from {dockerfile} contained unknown/invalid entries, ignoring...\n\n{txt}\n")
+            log_warning(
+                f"YAML header from {dockerfile} contained unknown/invalid entries, ignoring...\n\n{txt}\n"
+            )
 
     except Exception as error:
         log_error(f"Error parsing YAML from {dockerfile}:  {error}")

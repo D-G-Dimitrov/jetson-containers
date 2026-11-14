@@ -10,9 +10,12 @@ apt-get install -y --no-install-recommends \
 rm -rf /var/lib/apt/lists/*
 apt-get clean
 
+# Persistent download cache (mounted by the build system via the 'build_cache'
+# package metadata, exposed as $BUILD_CACHE_DIR).  Falls back to a plain /tmp dir.
+CACHE_DIR="${BUILD_CACHE_DIR:-/tmp/cuda}"
 echo "Downloading ${CUDA_DEB}"
-mkdir -p /tmp/cuda
-cd /tmp/cuda
+mkdir -p "${CACHE_DIR}"
+cd "${CACHE_DIR}"
 
 if [[ "$CUDA_ARCH" == "tegra-aarch64" ]]; then
     # Jetson (Tegra)
@@ -26,14 +29,21 @@ else
         -O /etc/apt/preferences.d/cuda-repository-pin-600
 fi
 
-wget $WGET_FLAGS ${CUDA_URL}
-dpkg -i *.deb
+DEB_NAME="$(basename ${CUDA_URL})"
+if [[ -f "${CACHE_DIR}/${DEB_NAME}" ]]; then
+    echo "CUDA repository package already cached: ${CACHE_DIR}/${DEB_NAME}"
+else
+    wget $WGET_FLAGS ${CUDA_URL}
+fi
+
+dpkg -i "${CACHE_DIR}/${DEB_NAME}"
 cp /var/cuda-*-local/cuda-*-keyring.gpg /usr/share/keyrings/
 
 # Tegra (Jetson)
 if [[ "$CUDA_ARCH" == "tegra-aarch64" ]]; then
-    if [[ -f /var/cuda-tegra-repo-ubuntu*-local/cuda-compat-*.deb ]]; then
-        ar x /var/cuda-tegra-repo-ubuntu*-local/cuda-compat-*.deb
+    compat_deb=$(compgen -G '/var/cuda-tegra-repo-ubuntu*-local/cuda-compat-*.deb' | head -n1)
+    if [[ -n "${compat_deb}" ]]; then
+        ar x "${compat_deb}"
         tar xvf data.tar.xz -C /
     fi
 fi
@@ -45,4 +55,8 @@ apt-get clean
 
 dpkg --list | grep cuda
 dpkg -P ${CUDA_DEB}
-rm -rf /tmp/cuda
+
+# Keep the persistent download cache across builds, but clean up the /tmp fallback.
+if [[ -z "${BUILD_CACHE_DIR}" ]]; then
+    rm -rf "${CACHE_DIR}"
+fi

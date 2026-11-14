@@ -28,20 +28,27 @@ else
 fi
 
 echo "=== Fixing cuSPARSELt detection ==="
-if [[ -f "/usr/lib/aarch64-linux-gnu/libcusparseLt/13/libcusparseLt.so.0.8.0.4" ]]; then
-    echo "Found cuSPARSELt library, creating symbolic links..."
+# The NVIDIA apt package installs libcusparseLt under a versioned subdir
+# (/usr/lib/aarch64-linux-gnu/libcusparseLt/<cuda-major>/) that is NOT on the
+# default linker or loader search path. Find the real library and expose it at
+# the top level so CMake (USE_CUSPARSELT) and the runtime loader can find it.
+CUSPARSELT_LIB=$(find /usr/lib/aarch64-linux-gnu/libcusparseLt -type f -name 'libcusparseLt.so.*' 2>/dev/null | head -n1)
+if [ -n "${CUSPARSELT_LIB}" ]; then
+    echo "Found cuSPARSELt library: ${CUSPARSELT_LIB}"
 
-    # Create symbolic link in standard location
-    sudo ln -sf /usr/lib/aarch64-linux-gnu/libcusparseLt/13/libcusparseLt.so.0.8.0.4 /usr/lib/aarch64-linux-gnu/libcusparseLt.so
+    # Create symbolic links in the standard multiarch location
+    ln -sf "${CUSPARSELT_LIB}" /usr/lib/aarch64-linux-gnu/libcusparseLt.so
+    ln -sf "${CUSPARSELT_LIB}" /usr/lib/aarch64-linux-gnu/libcusparseLt.so.0
 
-    # Also create versioned symlink
-    sudo ln -sf /usr/lib/aarch64-linux-gnu/libcusparseLt/13/libcusparseLt.so.0.8.0.4 /usr/lib/aarch64-linux-gnu/libcusparseLt.so.0
+    # Register the versioned subdir with the runtime loader
+    echo "$(dirname "${CUSPARSELT_LIB}")" > /etc/ld.so.conf.d/cusparselt.conf
+    ldconfig
 
     # Verify the links
     ls -la /usr/lib/aarch64-linux-gnu/libcusparseLt*
     echo "cuSPARSELt symbolic links created"
 else
-    echo "cuSPARSELt library not found in expected location"
+    echo "cuSPARSELt library not found"
 fi
 
 export NCCL_DEBUG=${NCCL_DEBUG:-INFO}
@@ -81,12 +88,11 @@ trap cleanup EXIT
 
 # --- Build progress tracking ---
 echo "=== Starting PyTorch build at $(date) ==="
-echo "Build command: python3 setup.py bdist_wheel --dist-dir /opt"
+echo "Build command: python3 -m build --wheel --no-isolation --outdir /opt"
 echo "Environment variables:"
 env | grep -E "(USE_|BLAS|CUDA|TORCH)" | sort
 
-# Start build with progress monitoring
-BUILD_START=$(date +%s)
+# Start build
 
 export USE_PRIORITIZED_TEXT_FOR_LD=1 # mandatory for ARM
 export PYTORCH_BUILD_NUMBER=1
@@ -108,7 +114,10 @@ export USE_MEM_EFF_ATTENTION=1
 export USE_TENSORRT=0
 export USE_BLAS="$USE_BLAS"
 export BLAS="$BLAS"
-python3 setup.py bdist_wheel --dist-dir /opt
+# PyTorch >=2.14 is built with scikit-build-core (PEP 517); 'python setup.py
+# bdist_wheel' is deprecated and exits non-zero. Build the wheel via the build
+# frontend with --no-isolation so the env vars and installed deps are used.
+python3 -m build --wheel --no-isolation --outdir /opt
 
 cd /
 rm -rf /opt/pytorch

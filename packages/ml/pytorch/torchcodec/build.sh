@@ -71,9 +71,16 @@ echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
 pkg-config --variable pc_path pkg-config | tr ':' '\n'
 pkg-config --debug libavcodec |& sed -n '1,160p' | grep -E "Searching|Looking|Trying|Located|open" || true
 
+# torchcodec >=0.17.0 is built with scikit-build-core (PEP 517) and no longer ships a setup.py.
+# Use 'python3 -m build' (the command its own docs recommend) instead of the removed
+# 'setup.py bdist_wheel' path.  scikit-build-core is already installed in the base image.
+# HEIC/AVIF image decoding is disabled (libheif not present, S3 libavif isn't bundled in
+# the wheel so it fails to load at runtime); video decoding and JPEG/PNG/WebP/GIF are unaffected.
+export TORCHCODEC_BUILD_HEIC=0
+export TORCHCODEC_BUILD_AVIF=0
 BUILD_VERSION=${TORCHCODEC_VERSION} \
 BUILD_SOX=1 \
-python3 setup.py bdist_wheel --verbose --dist-dir /opt
+python3 -m build --wheel --no-isolation --outdir /opt
 
 cd ../
 rm -rf /opt/torchcodec
