@@ -58,7 +58,7 @@ RUN if python3 -c 'import opencv_contrib_python' 2>/dev/null || pip3 show opencv
 	OPENCV_VER=$(python3 -c 'from importlib.metadata import version; print(version("opencv-contrib-python"))' 2>/dev/null); \
 	if [ -n "$OPENCV_VER" ]; then \
 		uv pip uninstall -y opencv-python-headless && \
-		uv pip install --force-reinstall "opencv-contrib-python==${OPENCV_VER}" && \
+		uv pip install --no-deps --force-reinstall "opencv-contrib-python==${OPENCV_VER}" && \
 		python3 -c 'import cv2; print("OpenCV", cv2.__version__, "CUDA devices:", cv2.cuda.getCudaEnabledDeviceCount())'; \
 	fi; \
 fi

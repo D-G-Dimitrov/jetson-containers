@@ -43,17 +43,18 @@ fi
 
 pip install -U transformers
 
+# vLLM 0.33.0's wheel metadata pins torchaudio==2.11.0 (a torch 2.11-era
+# version) even though it requires torch==2.14.0, so uv would downgrade the
+# torchaudio the base image shipped (2.14.0).  Record the pre-install version
+# and restore it after installing vllm, resolved from the index (the base
+# image's /opt wheels may be gone in a cleaned base).
+TORCHAUDIO_PRE=$(python3 -c 'import importlib.metadata as m; print(m.version("torchaudio"))' 2>/dev/null || true)
+
 uv pip install --index-strategy unsafe-best-match \
   vllm=="${VLLM_VERSION}"
 
-# vLLM 0.33.0's wheel metadata pins torchaudio==2.11.0 (a torch 2.11-era
-# version) even though it requires torch==2.14.0, so uv downgrades the local
-# torchaudio 2.14.0 wheel.  Restore the torch-2.14 build from /opt.
-if [[ "$VLLM_VERSION" == 0.33.* ]]; then
-	TA_WHEEL=$(ls /opt/torchaudio-*.whl 2>/dev/null | head -1)
-	if [ -n "$TA_WHEEL" ]; then
-		uv pip install --force-reinstall "$TA_WHEEL"
-	fi
+if [[ "$VLLM_VERSION" == 0.33.* && -n "$TORCHAUDIO_PRE" ]]; then
+	uv pip install --force-reinstall "torchaudio==${TORCHAUDIO_PRE}"
 fi
 
 # Prebuilt wheels are compiled against a specific PyTorch/CUDA version and can
