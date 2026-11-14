@@ -61,6 +61,7 @@ It will then go off and either pull or build all the dependencies needed, includ
 * [Package Definitions](/docs/packages.md)
 * [System Setup](/docs/setup.md)
 * [Building Containers](/docs/build.md)
+* [Source-Build & Verification Workflow](/docs/source-build-workflow.md)
 * [Running Containers](/docs/run.md)
 
 Check out the tutorials at the [**Jetson Generative AI Lab**](https://www.jetson-ai-lab.com)!
