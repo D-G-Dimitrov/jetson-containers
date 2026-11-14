@@ -46,6 +46,16 @@ pip install -U transformers
 uv pip install --index-strategy unsafe-best-match \
   vllm=="${VLLM_VERSION}"
 
+# vLLM 0.33.0's wheel metadata pins torchaudio==2.11.0 (a torch 2.11-era
+# version) even though it requires torch==2.14.0, so uv downgrades the local
+# torchaudio 2.14.0 wheel.  Restore the torch-2.14 build from /opt.
+if [[ "$VLLM_VERSION" == 0.33.* ]]; then
+	TA_WHEEL=$(ls /opt/torchaudio-*.whl 2>/dev/null | head -1)
+	if [ -n "$TA_WHEEL" ]; then
+		uv pip install --force-reinstall "$TA_WHEEL"
+	fi
+fi
+
 # Prebuilt wheels are compiled against a specific PyTorch/CUDA version and can
 # be ABI-incompatible with the local PyTorch build (e.g. undefined symbol
 # c10::cuda::c10_cuda_check_implementation with PyTorch 2.14/CUDA 13.2).  Verify

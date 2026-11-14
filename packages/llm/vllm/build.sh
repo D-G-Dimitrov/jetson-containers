@@ -32,6 +32,14 @@ if [ "$VLLM_VERSION" == "0.28.0" ]; then
   git apply /tmp/vllm/fix_v0.28.0.patch
 fi
 
+# vLLM 0.33.0 pins torchaudio==2.11.0 (a torch 2.11-era version) even though it
+# requires torch==2.14.0.  That pin gets baked into the wheel METADATA and makes
+# uv downgrade the local torchaudio 2.14.0 wheel on install.  Drop it so wheels
+# built here carry no wrong torchaudio pin.
+if [[ "$VLLM_VERSION" == 0.33.* ]]; then
+  sed -i '/^torchaudio==2.11.0$/d' requirements/cuda.txt
+fi
+
 # Not needed in JP7.2
 #sed -i \
 #  -e 's|^gguf.*|gguf|g' \
