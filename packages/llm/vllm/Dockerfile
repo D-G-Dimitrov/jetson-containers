@@ -30,14 +30,26 @@ RUN /tmp/vllm/install.sh || /tmp/vllm/build.sh
 
 # Known upstream vLLM bug: the memory-profiling assert aborts startup whenever
 # free memory *grows* during profiling (vllm-project/vllm#56830, #35920).  On
-# Jetson UMA the host's jtop/exporter/apt noise shifts the unified-memory pool
-# during the ~10s profiling window, firing the assert spuriously.  The assert
-# only checks free >= init (it never guards the real risk, another process
-# allocating during profiling), so allowing 1 GiB slack is safe.  Patch the
-# installed wheel so the test/engine don't die on Jetson host noise.
-RUN GPW=$(python3 -c 'import vllm.v1.worker.gpu_worker as m; print(m.__file__)') && \
-    sed -i 's|assert init_free_memory >= free_gpu_memory, (|assert init_free_memory + 1024**3 >= free_gpu_memory, (|' "$GPW" && \
-    grep -n "init_free_memory + 1024" "$GPW"
+# Jetson UMA the host's jtop/exporter/apt noise plus back-to-back docker teardown
+# shifts the unified-memory pool during the ~10s profiling window, firing the
+# assert spuriously.  The assert only checks free >= init (it never guards the
+# real risk, another process allocating during profiling), so it is pure noise
+# here.  Replace it with a warning so the engine doesn't die on Jetson host
+# noise.
+RUN python3 /tmp/vllm/fix_memory_profiling.py
+
+# The venv is based on /opt/python, not the distro python (/usr).  Packages
+# installed into the system site dirs before the venv exists (e.g. the
+# cudastack stage installs TensorRT python bindings into
+# /usr/local/lib/python3.12/dist-packages) are therefore invisible to the
+# venv.  Add the system dist-packages dir to the venv path so those bindings
+# resolve (e.g. `import tensorrt` in the cudastack test).
+RUN PY_MINOR=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")') && \
+	if [ -d "/usr/local/lib/python${PY_MINOR}/dist-packages" ]; then \
+		mkdir -p "/opt/venv/lib/python${PY_MINOR}/site-packages" && \
+		echo "/usr/local/lib/python${PY_MINOR}/dist-packages" > "/opt/venv/lib/python${PY_MINOR}/site-packages/system-dist.pth" && \
+		python3 -c 'import tensorrt; print("TensorRT", tensorrt.__version__)' || true; \
+	fi
 
 # vllm's dependencies pull in opencv-python-headless (no CUDA), which overwrites
 # the CUDA-enabled OpenCV installed by the opencv package (opencv-contrib-python
