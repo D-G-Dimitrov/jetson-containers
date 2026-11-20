@@ -28,19 +28,19 @@ uv pip install \
 	fastsafetensors
 
 if [[ "$VLLM_VERSION" == 0.13.* ]]; then
-  uv pip install --index-strategy unsafe-best-match \
+  uv pip install --index-strategy unsafe-first-match \
     "flashinfer-cubin==0.6.18.post1"
 elif [[ "$VLLM_VERSION" == 0.29.* ]]; then
-  uv pip install --index-strategy unsafe-best-match \
+  uv pip install --index-strategy unsafe-first-match \
     "flashinfer-cubin==0.6.18"
 elif [[ "$VLLM_VERSION" == 0.30.* ]]; then
-  uv pip install --index-strategy unsafe-best-match \
+  uv pip install --index-strategy unsafe-first-match \
     "flashinfer-cubin==0.6.18.post1"
 elif [[ "$VLLM_VERSION" == 0.31.* ]]; then
-  uv pip install --index-strategy unsafe-best-match \
+  uv pip install --index-strategy unsafe-first-match \
     "flashinfer-cubin==0.7.0.post1"
 elif [[ "$VLLM_VERSION" == 0.34.* ]]; then
-  uv pip install --index-strategy unsafe-best-match \
+  uv pip install --index-strategy unsafe-first-match \
     "flashinfer-cubin==0.7.3"
 fi
 
