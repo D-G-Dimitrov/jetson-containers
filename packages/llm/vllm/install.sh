@@ -60,8 +60,7 @@ TORCHAUDIO_PRE=$(python3 -c 'import importlib.metadata as m; print(m.version("to
 # package (devpi -> pypi -> flashinfer), so common packages never hit the
 # flaky flashinfer index while flashinfer-python (only available there)
 # still resolves.
-uv pip install --index-strategy unsafe-first-match \
-  vllm=="${VLLM_VERSION}"
+uv pip install -v vllm=="${VLLM_VERSION}"
 
 if [[ ( "$VLLM_VERSION" == 0.33.* || "$VLLM_VERSION" == 0.34.* ) && -n "$TORCHAUDIO_PRE" ]]; then
 	uv pip install --force-reinstall "torchaudio==${TORCHAUDIO_PRE}"
