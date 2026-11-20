@@ -39,23 +39,33 @@ elif [[ "$VLLM_VERSION" == 0.30.* ]]; then
 elif [[ "$VLLM_VERSION" == 0.31.* ]]; then
   uv pip install --index-strategy unsafe-best-match \
     "flashinfer-cubin==0.7.0.post1"
+elif [[ "$VLLM_VERSION" == 0.34.* ]]; then
+  uv pip install --index-strategy unsafe-best-match \
+    "flashinfer-cubin==0.7.3"
 fi
 
 pip install -U transformers
 
-# vLLM 0.33.0's wheel metadata pins torchaudio==2.11.0 (a torch 2.11-era
+# vLLM 0.33.0/0.34.0 wheel metadata pins torchaudio==2.11.0 (a torch 2.11-era
 # version) even though it requires torch==2.14.0, so uv would downgrade the
 # torchaudio the base image shipped (2.14.0).  Record the pre-install version
 # and restore it after installing vllm, resolved from the index (the base
 # image's /opt wheels may be gone in a cleaned base).
 TORCHAUDIO_PRE=$(python3 -c 'import importlib.metadata as m; print(m.version("torchaudio"))' 2>/dev/null || true)
 
-uv pip install --index-strategy unsafe-best-match \
+# flashinfer.ai's wheel index intermittently 503s on unrelated packages
+# (observed Nov 2026), which aborts uv resolution under unsafe-best-match
+# (uv queries EVERY index for EVERY package, and one 503 fails the whole
+# resolve).  unsafe-first-match stops at the first index that provides a
+# package (devpi -> pypi -> flashinfer), so common packages never hit the
+# flaky flashinfer index while flashinfer-python (only available there)
+# still resolves.
+uv pip install --index-strategy unsafe-first-match \
   vllm=="${VLLM_VERSION}"
 
-if [[ "$VLLM_VERSION" == 0.33.* && -n "$TORCHAUDIO_PRE" ]]; then
+if [[ ( "$VLLM_VERSION" == 0.33.* || "$VLLM_VERSION" == 0.34.* ) && -n "$TORCHAUDIO_PRE" ]]; then
 	uv pip install --force-reinstall "torchaudio==${TORCHAUDIO_PRE}"
-	# vLLM 0.33.0 also pins setuptools<81,>=78.1.1 for python>3.11; other
+	# vLLM also pins setuptools<81,>=78.1.1 for python>3.11; other
 	# deps (ray, etc.) can pull a newer one that vLLM rejects at runtime.
 	uv pip install "setuptools>=78.1.1,<81.0.0"
 fi

@@ -51,6 +51,19 @@ RUN PY_MINOR=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.ver
 		python3 -c 'import tensorrt; print("TensorRT", tensorrt.__version__)' || true; \
 	fi
 
+# NVIDIA base images ship a 0-byte libvulkan.so.1 stub under
+# /usr/lib/aarch64-linux-gnu/nvidia/ (the real driver lib is bind-mounted at
+# runtime by nvidia-container-runtime).  cv2's CUDA build links libvulkan.so.1,
+# so a build-time `import cv2` dies with "file too short".  Fill the stub with
+# the distro's libvulkan1 loader so cv2 can import during the build; the
+# runtime driver mount still overrides this path.
+RUN if [ -f /usr/lib/aarch64-linux-gnu/nvidia/libvulkan.so.1 ] && [ ! -s /usr/lib/aarch64-linux-gnu/nvidia/libvulkan.so.1 ]; then \
+	REAL_VK=$(find /usr/lib/aarch64-linux-gnu -maxdepth 1 -name 'libvulkan.so.1.*' -type f 2>/dev/null | head -1); \
+	if [ -s "$REAL_VK" ]; then \
+		cp -f "$REAL_VK" "$(readlink -f /usr/lib/aarch64-linux-gnu/nvidia/libvulkan.so.1)"; \
+	fi; \
+fi
+
 # vllm's dependencies pull in opencv-python-headless (no CUDA), which overwrites
 # the CUDA-enabled OpenCV installed by the opencv package (opencv-contrib-python
 # from the local index).  Restore the CUDA build so GPU-accelerated cv2 works.
